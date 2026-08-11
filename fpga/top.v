@@ -77,6 +77,12 @@ module top
     output wire [10:0] O_sdram_addr, // 11 bit multiplexed address bus
     output wire [1:0] O_sdram_ba, // two banks
     output wire [3:0] O_sdram_dqm // 32/4
+`ifdef ECP5
+    ,
+    // carrier DB9 joystick ports (via 74LCX07, active-low), on gpio[0..11]
+    input wire [5:0] joya,   // port A: {btn2,btn1,right,left,down,up}
+    input wire [5:0] joyb    // port B
+`endif
 
     //output wire SLTSL3
 
@@ -493,8 +499,18 @@ wire psg_req_r;
 assign psg_req_r = (bus_addr[7:0] == 8'hA2 && bus_iorq_n == 0 && bus_m1_n == 1 && bus_rd_n == 0) ? 1 : 0;
 
 // USB joystick data wires (driven by fpga_companion instance below)
-wire [7:0] joystick0;
-wire [7:0] joystick1;
+wire [7:0] joystick0_usb;
+wire [7:0] joystick1_usb;
+`ifdef ECP5
+// Merge USB gamepad (companion) with the carrier's physical DB9 sticks. The 74LCX07 lines are
+// active-low; the core wants active-high, so invert and OR. Bits [0..5] = up,down,left,right,
+// TrigA,TrigB. NOTE: verify JOYA0..5 order on hardware and swap bits here if a direction is wrong.
+wire [7:0] joystick0 = joystick0_usb | {2'b00, ~joya[5:0]};
+wire [7:0] joystick1 = joystick1_usb | {2'b00, ~joyb[5:0]};
+`else
+wire [7:0] joystick0 = joystick0_usb;
+wire [7:0] joystick1 = joystick1_usb;
+`endif
 
 // Track which PSG register was last latched via I/O A0h
 reg [3:0] psg_addr_latch;
@@ -2787,9 +2803,9 @@ memory_ctrl mem1 (
         .spi_irqn (spi_irqn),
 
         .keyboard (keyboard),
-        .joystick0 (joystick0),
+        .joystick0 (joystick0_usb),
         .joystick0_console (),
-        .joystick1 (joystick1),
+        .joystick1 (joystick1_usb),
         .ws2812_color ()    // LEDs are discrete; WS2812 not used
     );
 

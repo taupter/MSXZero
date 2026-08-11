@@ -89,9 +89,13 @@ LOCATE COMP "ws2812_led" SITE "J3"; # gpio[12]
 ## ---- Notes / still optional ----
 # m0s[4:0]  : the Tang Nano M0S Dock — NOT present on the icepi_carrier (RP2350 uses the SPI above).
 #             Leave unconstrained/unused; keyboard + gamepads come over the companion SPI.
-# DB9 joysticks (carrier JOYA/JOYB via 74LCX07) reach the FPGA on gpio[0..11]
-#   (js0=gpio[0..5]: G3,K3,T2,R2,R1,E1 ; js1=gpio[6..11]: F3,G1,H2,J1,L2,G2).
-#   MSXnano has NO DB9 joystick ports (gamepads arrive via the companion), so unused for now.
-#   Assign these only if you add direct DB9 input to the core later.
+## ---- DB9 joysticks (carrier, via 74LCX07) -> joya/joyb ports (added under `ifdef ECP5) ----
+## gpio[0..5] = port A, gpio[6..11] = port B. Read directly by the MSX PSG port A (as on a real MSX),
+## OR'd with USB gamepads from the companion. Bit order = up,down,left,right,TrigA,TrigB (verify on HW).
+LOCATE COMP "joya[0]" SITE "G3"; LOCATE COMP "joya[1]" SITE "K3"; LOCATE COMP "joya[2]" SITE "T2";
+LOCATE COMP "joya[3]" SITE "R2"; LOCATE COMP "joya[4]" SITE "R1"; LOCATE COMP "joya[5]" SITE "E1";
+LOCATE COMP "joyb[0]" SITE "F3"; LOCATE COMP "joyb[1]" SITE "G1"; LOCATE COMP "joyb[2]" SITE "H2";
+LOCATE COMP "joyb[3]" SITE "J1"; LOCATE COMP "joyb[4]" SITE "L2"; LOCATE COMP "joyb[5]" SITE "G2";
+# (LVCMOS33 inputs; add PULLMODE=UP if a disconnected port should read idle)
 # usb_uart_tx : second/debug UART — assign a spare pin if needed (else leave unconstrained).
 # led[5]      : only 5 on-board LEDs mapped here; drop led[5] or route to a carrier LED via gpio[13..15].
