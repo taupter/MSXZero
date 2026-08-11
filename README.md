@@ -1,48 +1,77 @@
-# MSXnano-F45 — MSX2+ core ported to Lattice ECP5 (IcePi Zero 45F)
+# MSXnano-F45 — an MSX2+ computer on the Lattice ECP5 (IcePi Zero 45F)
 
 **Status: work in progress — not finished. It does not build or run yet.**
-The FPGA *platform layer* (clocks, video output, constraints) is largely in place in RTL; the
-SDRAM controller, flash-clock, toolchain and on-hardware bring-up are still to do.
+The FPGA platform layer (clocks, video output, constraints) is written; the SDRAM controller,
+full synthesis, and on-hardware bring-up are still to do. See progress at the bottom.
 
-A fork of [Papipapito/MSXnano](https://github.com/Papipapito/MSXnano) (a full MSX2+ core —
-Z80, V9958, SCC/OPLL, SD/Nextor, plus ColecoVision and Sega SG-1000 — for the **Tang Nano 20K /
-Gowin**), being ported to the **IcePi Zero (ECP5, 45F)** on the MiSTle **icepi_carrier**.
+A fork of [Papipapito/MSXnano](https://github.com/Papipapito/MSXnano), being ported from the
+**Tang Nano 20K (Gowin)** to the **IcePi Zero (ECP5, 45F)** on the MiSTle **icepi_carrier**.
 
-The Gowin build is kept intact: every ECP5 change is behind `` `ifdef ECP5`` and the ECP5-only
-modules live in `fpga/src/lattice/`. Build recipe: [`fpga/BUILD_ECP5.md`](fpga/BUILD_ECP5.md).
-Full roadmap: [`PORT_PLAN.md`](PORT_PLAN.md).
+## What the core is
 
-## Done so far
-**Clocks** — one PLL from the IcePi's 50 MHz oscillator makes everything:
-- `fpga/src/lattice/clocks_ecp5.v` — 108 / 108@180 / 54 / 27 MHz (one VCO@540, all exact),
-  replacing the Gowin `CLK_108P` + both `Gowin_CLKDIV` dividers.
-- `fpga/tn_vdp_v3_v9958/src/lattice/clk_135_ecp5.v` — 27 -> 135 MHz for the VDP (replaces Gowin `CLK_135`).
-- `fpga/src/lattice/ecp5pll.sv` — BSD ECP5 PLL generator.
+This is a complete **MSX2+ home computer** implemented in FPGA logic, plus two bonus consoles
+that share the same silicon. It is not an emulator running on a CPU — it is the actual hardware,
+recreated:
 
-**Video output** — `fpga/tn_vdp_v3_v9958/src/hdmi/serializer_ecp5.sv`: a 5x `ODDRX1F`
-pseudo-differential GPDI output, replacing the Gowin `OSER10` serializer + `ELVDS_OBUF`. Keeps
-MSXnano's own TMDS encoding and its 27/135 MHz clocks.
+### Systems
+- **MSX2+** — the main machine (Z80, V9958 video, full BIOS/sub-ROM).
+- **ColecoVision** and **Sega SG-1000** — ride along for free (they reuse the Z80 / VDP / PSG).
 
-**Constraints** — `fpga/icepi.lpf`: clock (M1/50 MHz), GPDI, 16-bit SDRAM, SD card, config flash,
-LEDs, buttons, UART, and the RP2350 **companion SPI** (`spi_sclk`/`csn`/`dir`/`dat`/`irqn` on
-L1/N4/F2/J2/P2) — pins taken from the tested NanoMig IcePi port.
+### CPU & memory
+- **Z80** CPU (the T80 core) with the MSX clock-enable timing.
+- **512 KB mapper RAM** + **128 KB VRAM**, held in external SDRAM.
+- **MegaRAM / MegaROM** mappers (ASCII 8K/16K, Konami/SCC) for cartridge images.
+- Config flash + an RTC.
 
-**Synthesis-clean-up** — `fpga/src/lattice/bufg_ecp5.v` (BUFG pass-through; ECP5 infers global
-routing). Memories are inferred BRAM (portable). The Gowin PLL/CLKDIV/serializer helper files are
-excluded from the ECP5 file list (see `BUILD_ECP5.md`).
+### Video (V9958 VDP)
+- All MSX / MSX2 / MSX2+ screen modes, sprites, 19268-colour YJK modes, hardware scroll.
+- Output over **HDMI** (and the design also carries VGA-style timing).
 
-## Not done yet
-- **SDRAM** — the IcePi SDRAM is 16-bit, MSXnano's controller is 32-bit; conversion is planned in
-  [`fpga/SDRAM_PORT.md`](fpga/SDRAM_PORT.md) (contained to `src/memory.v`).
-- **Flash clock** — `mspi_sclk` must go through the ECP5 `USRMCLK` config-clock primitive.
-- **Toolchain** — pick + install Yosys+nextpnr-ecp5 or Diamond, wire in the `BUILD_ECP5.md` file list.
-- **On-hardware bring-up** — clocks lock, HDMI test pattern, SDRAM memtest, companion, then the core.
+### Sound
+- **PSG** (AY-3-8910 / YM2149) — the classic MSX sound.
+- **SCC / SCC-I** — Konami wavetable (Gradius etc.).
+- **OPLL** (YM2413, MSX-Music FM) via the `jtopl` core.
+- **OPL4 / MoonSound** — the `YMF278B` core is vendored in (`fpga/opl4wave/`), not yet wired up.
 
-Notes: ColecoVision + SG-1000 share the Z80/VDP/PSG and ride along unchanged. Reference platform =
-the NanoMig IcePi port and `cheyao/icepi-zero` (same board, tested).
+### Storage & I/O
+- **SD card** with the **Nextor** kernel (MSX-DOS 2 — boot disks, load ROM/DSK images).
+- **FPGA Companion** (RP2350 on the carrier, over SPI) — provides **USB keyboard and gamepads**
+  and the on-screen menu.
+- **Two DB9 joystick ports** (via the carrier's 74LCX07 buffers) — read natively by the PSG,
+  as on a real MSX (added in this port).
+- WiFi hooks (via the companion), MIDI, WS2812 status LED.
 
-## Credits and license
-Based on Papipapito/MSXnano, which is based on jabadiagm/MSXgoauldSD_tn20k. **GPL-3.0**
-(see `LICENSE`). The original project README is kept as [`README.upstream.md`](README.upstream.md).
+## The ECP5 port (this fork)
+
+Goal: keep the MSX2+ core, swap the **Gowin platform layer** for **ECP5**. Every ECP5 change is
+behind `` `ifdef ECP5`` and lives in `fpga/src/lattice/`; the Gowin build stays intact.
+Target hardware: **IcePi Zero (ECP5-45F) + icepi_carrier** (the tested MiSTle board), RP2350 companion.
+
+**Done:**
+- Clocks — `clocks_ecp5.v`: one `EHXPLLL` from the 50 MHz osc → 107.69 (sys) / 134.6 (TMDS) /
+  26.92 (pixel) / 53.85 MHz. (108 MHz is not reachable from 50 MHz; the whole system runs 0.28%
+  low — within HDMI tolerance, imperceptible for MSX.)
+- Video output — `serializer_ecp5.sv`: ECP5 `ODDRX1F` GPDI, replacing the Gowin `OSER10` + `ELVDS_OBUF`.
+- Constraints — `icepi.lpf`: clock, GPDI, 16-bit SDRAM, SD, flash, LEDs, buttons, companion SPI, DB9 joysticks.
+- Synthesis-clean-up — `bufg_ecp5.v` stub; the entire VHDL layer analyzes under `ghdl`.
+- Toolchain — open-source (Yosys + nextpnr-ecp5 + ghdl); `build_ecp5.sh` + `BUILD_ECP5.md`.
+
+**Not done yet:**
+- Full synthesis (Yosys/GHDL mixed-language integration), then nextpnr fit (does MSX2+ fit a 45F?).
+- **SDRAM** — the IcePi SDRAM is 16-bit; plan is to wrap NanoMig's tested controller (`nanomig_sdram.sv`).
+- Flash clock (`mspi_sclk` → ECP5 `USRMCLK`), on-hardware bring-up (HDMI, SDRAM memtest, companion).
+- **OPL4** — wire in the vendored `opl4wave/YMF278B.sv` (redo its wave-ROM memory wrapper for ECP5). See PORT_PLAN.md.
+
+## Building
+
+Open-source flow: `cd fpga && ./build_ecp5.sh` (needs the OSS CAD Suite). Details: `fpga/BUILD_ECP5.md`.
+Roadmap: `PORT_PLAN.md`. SDRAM plan: `fpga/SDRAM_PORT.md`.
+
+## References & credits
+
+Based on Papipapito/MSXnano ← jabadiagm/MSXgoauldSD_tn20k. **GPL-3.0** (`LICENSE`).
+Platform references (same IcePi hardware): NanoMig IcePi port, `cheyao/icepi-zero`.
+OPL4 core vendored from [Papipapito/MSXimus](https://github.com/Papipapito/MSXimus) (GPL-3.0).
+`jtopl` FM cores by jotego (GPL-3.0). Upstream README kept as `README.upstream.md`.
 
 Parts of this port were done with assistance from Claude (an AI coding assistant).

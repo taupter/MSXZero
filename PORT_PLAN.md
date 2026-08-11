@@ -85,3 +85,26 @@ FPGA Companion (keyboard/SD/OSD).
 ## Pre-port bug fixes (from AUDIT §1)
 - `flash_rw.v` — 2 fixes required before reusing it for SRAM-persistence.
 - YM2149 combinational loop — placement lottery on a new device; watch it.
+
+## Future: OPL4 (MoonSound)
+`fpga/opl4wave/` is vendored from Papipapito/MSXimus (GPL-3.0): `YMF278B.sv` (the OPL4 core,
+~1200 lines) + `YMF278B_pkg.sv` + `ymf278b_gowin.v` (Gowin wave-ROM wrapper) + `convert.sh`/
+`postproc.py` (wave-ROM tools). NOT wired up yet. To add MoonSound:
+- The `YMF278B.sv` core (24-voice PCM + FM regs) is largely portable SV — keep it.
+- Redo the memory side: `ymf278b_gowin.v` is Gowin-specific; the OPL4 wave ROM (YRW801, 2 MB, +
+  sample RAM) must be served from the IcePi SDRAM (share the 16-bit controller) or a dedicated
+  region. This is the real integration work.
+- OPL4 = OPL3 FM + PCM; pair it with MSXimus's `opl3/` for the full FM path if wanted.
+- Resource check on the 45F first — OPL4 + OPL3 is not tiny.
+
+## Cherry-picks from MSXimus (Papipapito's GW5AT-60 port) — what's worth taking
+Same core lineage, GPL-3.0. It's Gowin+DDR3 so the *platform* code isn't reusable, but:
+- **OPL4** (`opl4wave/`) — DONE, pulled (above). Best path to MoonSound vs writing from MAME/datasheet.
+- **`test_hdmi/` + `test_sdram/`** — standalone bring-up harnesses (HDMI test pattern; SDRAM tester
+  `sdram_tester.v` + `tester_tb.v`). HIGH value: adapt for ECP5 to validate GPDI and SDRAM in isolation
+  before the full core (mirrors our Step 3/Step 4 bring-up).
+- **Board-abstraction structure** (`msx_console60k/`, `constraints/`, `ip/`) — reorganize our scattered
+  `src/lattice/` into a clean `icepi/` board dir following this pattern.
+- **`opl3/`** — full OPL3 FM core; take it with OPL4 for MoonSound FM.
+- SKIP for now: `jt10` (YM2610, not MSX-standard), `v9968`/`video720` (enhanced VDP + 720p — likely
+  too big for a 45F; get basic V9958 working first). `check_timing.py` is a handy timing helper.
