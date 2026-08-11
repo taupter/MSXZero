@@ -1,0 +1,76 @@
+## icepi.lpf — Lattice ECP5 constraints for MSXnano on the IcePi Zero (45F) + icepi_carrier
+## Pin SITEs taken from the TESTED NanoMig IcePi port (nanomig.lpf) and remapped to
+## MSXnano top.v port names. Step 2 of PORT_PLAN.md.
+##
+## STATUS: STARTER / INCOMPLETE. Verified board resources are mapped below; items marked
+## TODO still need pins (companion SPI to the RP2350, UART, WS2812, m0s, led[5]).
+##
+## ⚠️ BLOCKER before this elaborates: MSXnano top.v declares a **32-bit** SDRAM
+##   (IO_sdram_dq[31:0], O_sdram_dqm[3:0]) but the IcePi Zero SDRAM is **16-bit**
+##   (dq[15:0], dqm[1:0]). Narrow top.v's SDRAM interface + controller to 16-bit (Step 4)
+##   or dq[16..31] will have no pins. The 16-bit map below matches the real board.
+
+SYSCONFIG CONFIG_IOVOLTAGE=3.3 COMPRESS_CONFIG=ON MCCLK_FREQ=62 MASTER_SPI_PORT=DISABLE SLAVE_SPI_PORT=DISABLE SLAVE_PARALLEL_PORT=DISABLE;
+
+## ---- Clock: 50 MHz oscillator (MSXnano's board-clock input port is ex_clk_27m) ----
+LOCATE COMP "ex_clk_27m" SITE "M1";
+IOBUF  PORT "ex_clk_27m" PULLMODE=NONE IO_TYPE=LVCMOS33;
+FREQUENCY PORT "ex_clk_27m" 50 MHZ;
+
+## ---- GPDI / HDMI  (data_p/n[0]=Blue [1]=Green [2]=Red, clk_p/n=Clock) ----
+LOCATE COMP "data_p[0]" SITE "R13"; LOCATE COMP "data_n[0]" SITE "T14";
+LOCATE COMP "data_p[1]" SITE "R15"; LOCATE COMP "data_n[1]" SITE "T15";
+LOCATE COMP "data_p[2]" SITE "P16"; LOCATE COMP "data_n[2]" SITE "R16";
+LOCATE COMP "clk_p"     SITE "R12"; LOCATE COMP "clk_n"     SITE "T13";
+IOBUF PORT "data_p[0]" IO_TYPE=LVCMOS33D DRIVE=4; IOBUF PORT "data_n[0]" IO_TYPE=LVCMOS33D DRIVE=4;
+IOBUF PORT "data_p[1]" IO_TYPE=LVCMOS33D DRIVE=4; IOBUF PORT "data_n[1]" IO_TYPE=LVCMOS33D DRIVE=4;
+IOBUF PORT "data_p[2]" IO_TYPE=LVCMOS33D DRIVE=4; IOBUF PORT "data_n[2]" IO_TYPE=LVCMOS33D DRIVE=4;
+IOBUF PORT "clk_p"     IO_TYPE=LVCMOS33D DRIVE=4; IOBUF PORT "clk_n"     IO_TYPE=LVCMOS33D DRIVE=4;
+
+## ---- SDRAM (IcePi = 16-bit; MSXnano top.v is 32-bit → adapt in Step 4) ----
+LOCATE COMP "O_sdram_clk"   SITE "A3";  LOCATE COMP "O_sdram_cke"   SITE "B4";
+LOCATE COMP "O_sdram_cs_n"  SITE "B12"; LOCATE COMP "O_sdram_cas_n" SITE "B13";
+LOCATE COMP "O_sdram_ras_n" SITE "A12"; LOCATE COMP "O_sdram_wen_n" SITE "A13";
+LOCATE COMP "O_sdram_ba[0]" SITE "A11"; LOCATE COMP "O_sdram_ba[1]" SITE "B11";
+LOCATE COMP "O_sdram_dqm[0]" SITE "B14"; LOCATE COMP "O_sdram_dqm[1]" SITE "B3";
+# addr: IcePi has 13 lines (0..12); MSXnano uses [10:0] — map the low 11, leave 11/12 for the 16-bit ctrl
+LOCATE COMP "O_sdram_addr[0]" SITE "B10"; LOCATE COMP "O_sdram_addr[1]" SITE "A9";
+LOCATE COMP "O_sdram_addr[2]" SITE "B9";  LOCATE COMP "O_sdram_addr[3]" SITE "A8";
+LOCATE COMP "O_sdram_addr[4]" SITE "B8";  LOCATE COMP "O_sdram_addr[5]" SITE "A7";
+LOCATE COMP "O_sdram_addr[6]" SITE "B7";  LOCATE COMP "O_sdram_addr[7]" SITE "A6";
+LOCATE COMP "O_sdram_addr[8]" SITE "B6";  LOCATE COMP "O_sdram_addr[9]" SITE "A5";
+LOCATE COMP "O_sdram_addr[10]" SITE "A10";
+LOCATE COMP "IO_sdram_dq[0]" SITE "B16"; LOCATE COMP "IO_sdram_dq[1]" SITE "C14";
+LOCATE COMP "IO_sdram_dq[2]" SITE "C16"; LOCATE COMP "IO_sdram_dq[3]" SITE "C15";
+LOCATE COMP "IO_sdram_dq[4]" SITE "D16"; LOCATE COMP "IO_sdram_dq[5]" SITE "A15";
+LOCATE COMP "IO_sdram_dq[6]" SITE "B15"; LOCATE COMP "IO_sdram_dq[7]" SITE "A14";
+LOCATE COMP "IO_sdram_dq[8]" SITE "A2";  LOCATE COMP "IO_sdram_dq[9]" SITE "B2";
+LOCATE COMP "IO_sdram_dq[10]" SITE "E2"; LOCATE COMP "IO_sdram_dq[11]" SITE "D1";
+LOCATE COMP "IO_sdram_dq[12]" SITE "C2"; LOCATE COMP "IO_sdram_dq[13]" SITE "C1";
+LOCATE COMP "IO_sdram_dq[14]" SITE "C3"; LOCATE COMP "IO_sdram_dq[15]" SITE "B1";
+# (apply IO_TYPE=LVCMOS33 PULLMODE=NONE DRIVE=4 to all O_sdram_*/IO_sdram_dq — omitted for brevity;
+#  copy the IOBUF lines from nanomig.lpf, they match these net names 1:1)
+
+## ---- SD card ----
+LOCATE COMP "sd_sclk" SITE "P15"; LOCATE COMP "sd_cmd" SITE "N16";
+LOCATE COMP "sd_dat0" SITE "P14"; LOCATE COMP "sd_dat1" SITE "R14";
+LOCATE COMP "sd_dat2" SITE "M15"; LOCATE COMP "sd_dat3" SITE "M14";
+
+## ---- SPI config flash (mspi) ----
+LOCATE COMP "mspi_cs"   SITE "N8";
+LOCATE COMP "mspi_mosi" SITE "T8";   # flash DI
+LOCATE COMP "mspi_miso" SITE "T7";   # flash DO
+# mspi_sclk: ECP5 flash clock is the config MCLK — drive it via the USRMCLK primitive, NOT a pin.
+
+## ---- LEDs / buttons ----
+LOCATE COMP "led[0]" SITE "E13"; LOCATE COMP "led[1]" SITE "D14"; LOCATE COMP "led[2]" SITE "E12";
+LOCATE COMP "led[3]" SITE "C13"; LOCATE COMP "led[4]" SITE "D13";
+LOCATE COMP "s1" SITE "C5";   # user button
+LOCATE COMP "s2" SITE "C4";   # reset button
+
+## ---- TODO (need pins before full build) ----
+# spi_sclk / spi_csn / spi_dir / spi_dat / spi_irqn : RP2350 companion — find in NanoMig top.sv / carrier schematic
+# uart_tx / uart_rx / usb_uart_tx : IcePi FTDI / carrier UART pins
+# ws2812_led : carrier WS2812 status pin
+# m0s[4:0] : function unclear (MSX slot?) — identify before assigning
+# led[5] : IcePi exposes 5 LEDs here; find a 6th or drop led[5]

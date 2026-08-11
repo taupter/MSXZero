@@ -47,8 +47,13 @@ FPGA Companion (keyboard/SD/OSD).
    GPDI pins above, SDRAM bus, SD, companion SPI, reset/buttons. Silent-fail if pins wrong.
 3. **Video** — ECP5 GPDI TX (from `cheyao/gateware/dvi` or NanoMig) in place of Gowin DVI;
    add pixel + 5× TMDS clocks to the PLL; get a **test pattern out HDMI** first.
-4. **SDRAM** — adopt `cheyao sdram.v`; prove with its memtest before wiring the core. Tune the
-   clkoutp phase (currently 180°) for setup/hold.
+4. **SDRAM** — IcePi is **16-bit** vs MSXnano's **32-bit** controller. Don't fight the 32-bit
+   controller: adopt a **16-bit** one. `ulx3s_msx/src/sdram.v` shows the tested pattern — an
+   8-bit-CPU ↔ 16-bit-SDRAM bridge that picks the byte lane by `addr[0]` and masks writes with
+   `sd_dqm={addr[0],~addr[0]}`. Base the F45 controller on `cheyao icepi sdram.v` (16-bit, tested
+   on this exact board) + that byte-lane wrapper; prove it with cheyao's memtest first. Tune the
+   clkoutp phase (currently 180°). Note: MSX2+ needs ~512K mapper + 128K VRAM, so BRAM-only
+   (ulx3s `c_sdram=0`, 32K) is not enough — the 16-bit SDRAM path is required.
 5. **Companion** — map BL616 keyboard/SD/OSD → RP2350 (FPGA Companion), pattern from NanoMig `top.sv`.
 6. **Core bring-up** — instantiate the MSX2+ core on the new platform; iterate.
 
