@@ -50,8 +50,15 @@ FPGA Companion (keyboard/SD/OSD).
    MSX timing preserved. (Video pixel/TMDS clocks added in Step 3.)
 2. **Constraints** — write `icepi.lpf` from `nanomig.lpf` + `cheyao` `.lpf`: clk(M1,50MHz),
    GPDI pins above, SDRAM bus, SD, companion SPI, reset/buttons. Silent-fail if pins wrong.
-3. **Video** — ECP5 GPDI TX (from `cheyao/gateware/dvi` or NanoMig) in place of Gowin DVI;
-   add pixel + 5× TMDS clocks to the PLL; get a **test pattern out HDMI** first.
+3. **Video** — output stage DONE. `tn_vdp_v3_v9958/src/hdmi/serializer_ecp5.sv` replaces the
+   Gowin `OSER10` serializer + `ELVDS_OBUF` with a 5x ODDRX1F pseudo-differential GPDI output
+   (drives P and inverse N as plain LVCMOS33 — icepi.lpf updated). Wired into `v9958_top.v`
+   under ``ifdef ECP5`` (Gowin path kept as the `else`). Keeps MSXnano's TMDS encoding + its
+   existing clk_pixel(27)/clk_pixel_x5(135) clocks. REMAINING for video:
+     - the VDP's own clock PLL `tn_vdp_v3_v9958/src/gowin/clk_135.v` is Gowin — port it to
+       `ecp5pll` (produce 27 MHz pixel + 135 MHz 5x from the 50 MHz osc).
+     - define `ECP5` in the build (e.g. `+define+ECP5`) to select the new path.
+     - then get a test pattern out HDMI on real hardware.
 4. **SDRAM** — IcePi is **16-bit** vs MSXnano's **32-bit** controller. Don't fight the 32-bit
    controller: adopt a **16-bit** one. `ulx3s_msx/src/sdram.v` shows the tested pattern — an
    8-bit-CPU ↔ 16-bit-SDRAM bridge that picks the byte lane by `addr[0]` and masks writes with

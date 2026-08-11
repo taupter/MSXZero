@@ -510,6 +510,16 @@ module v9958_top(
 
     assign tmds_internal = pal_mode ? tmds_pal : tmds_ntsc;
     
+`ifdef ECP5
+    // ECP5 (IcePi Zero) GPDI output: ODDR pseudo-differential; replaces Gowin OSER10 + ELVDS_OBUF.
+    // Keeps the TMDS encoding above (tmds_internal). Drives tmds_data_p/n + tmds_clk_p/n directly.
+    serializer_ecp5 #(.NUM_CHANNELS(NUM_CHANNELS)) serializer (
+        .clk_pixel(clk_w), .clk_pixel_x5(clk_135_w), .reset(reset_w),
+        .tmds_internal(tmds_internal),
+        .tmds_data_p(tmds_data_p), .tmds_data_n(tmds_data_n),
+        .tmds_clk_p(tmds_clk_p),   .tmds_clk_n(tmds_clk_n)
+    );
+`else
     serializer #(.NUM_CHANNELS(NUM_CHANNELS), .VIDEO_RATE(0)) serializer(.clk_pixel(clk_w), .clk_pixel_x5(clk_135_w), .reset(reset_w),
     .tmds_internal(tmds_internal), .tmds(tmds) ); 
 
@@ -519,6 +529,7 @@ module v9958_top(
         .O({tmds_clk_p, tmds_data_p}),
         .OB({tmds_clk_n, tmds_data_n})
     );
+`endif
 
 ////////////////////
 
