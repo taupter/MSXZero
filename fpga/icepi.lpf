@@ -70,9 +70,28 @@ LOCATE COMP "led[3]" SITE "C13"; LOCATE COMP "led[4]" SITE "D13";
 LOCATE COMP "s1" SITE "C5";   # user button
 LOCATE COMP "s2" SITE "C4";   # reset button
 
-## ---- TODO (need pins before full build) ----
-# spi_sclk / spi_csn / spi_dir / spi_dat / spi_irqn : RP2350 companion — find in NanoMig top.sv / carrier schematic
-# uart_tx / uart_rx / usb_uart_tx : IcePi FTDI / carrier UART pins
-# ws2812_led : carrier WS2812 status pin
-# m0s[4:0] : function unclear (MSX slot?) — identify before assigning
-# led[5] : IcePi exposes 5 LEDs here; find a 6th or drop led[5]
+## ---- FPGA Companion (RP2350) SPI ----
+## Maps to the carrier RP2350 SPI (SCK/CS/MOSI/MISO/IRQ) via the J3 connector.
+## Pins from NanoMig's gpio[] assignment (top.sv) cross-referenced to nanomig.lpf.
+LOCATE COMP "spi_sclk" SITE "L1";   # gpio[24]  SCK  (MCU -> FPGA)
+LOCATE COMP "spi_csn"  SITE "N4";   # gpio[18]  CS   (MCU -> FPGA)
+LOCATE COMP "spi_dat"  SITE "J2";   # gpio[25]  MOSI (MCU -> FPGA)
+LOCATE COMP "spi_dir"  SITE "F2";   # gpio[21]  MISO (FPGA -> MCU)
+LOCATE COMP "spi_irqn" SITE "P2";   # gpio[22]  IRQ  (FPGA -> MCU)
+
+## ---- UART (IcePi FTDI) ----
+LOCATE COMP "uart_tx" SITE "K15";   # FPGA -> FTDI
+LOCATE COMP "uart_rx" SITE "K16";   # FTDI -> FPGA
+
+## ---- WS2812 status LED (carrier) ----
+LOCATE COMP "ws2812_led" SITE "J3"; # gpio[12]
+
+## ---- Notes / still optional ----
+# m0s[4:0]  : the Tang Nano M0S Dock — NOT present on the icepi_carrier (RP2350 uses the SPI above).
+#             Leave unconstrained/unused; keyboard + gamepads come over the companion SPI.
+# DB9 joysticks (carrier JOYA/JOYB via 74LCX07) reach the FPGA on gpio[0..11]
+#   (js0=gpio[0..5]: G3,K3,T2,R2,R1,E1 ; js1=gpio[6..11]: F3,G1,H2,J1,L2,G2).
+#   MSXnano has NO DB9 joystick ports (gamepads arrive via the companion), so unused for now.
+#   Assign these only if you add direct DB9 input to the core later.
+# usb_uart_tx : second/debug UART — assign a spare pin if needed (else leave unconstrained).
+# led[5]      : only 5 on-board LEDs mapped here; drop led[5] or route to a carrier LED via gpio[13..15].
