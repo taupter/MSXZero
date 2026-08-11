@@ -40,11 +40,21 @@ byte-within-word selector and becomes the **lowest word-address (column) bit**.
 8. **SdrSize / mode-register:** set for the IcePi chip's geometry (rows/cols/CAS) — copy the
    values from `cheyao/icepi-zero/gateware/sdram/memtest` mode-register setup.
 
-## Alternative (bigger, cleaner-slate)
-Replace memory.v's physical FSM with **`cheyao icepi sdram.v`** (16-bit, tested on this exact
-board) wrapped in a small arbiter that presents the `ram_*`/`vram_*` ports. More rewrite, but
-you start from silicon-proven timing. The in-place edit above is lower-diff and keeps MSXnano's
-refresh/video-sync arbitration — recommended for a first pass.
+## IcePi SDRAM chip geometry (from cheyao's tested controller — use these exact params)
+- **16-bit data** (`sd_data[15:0]`), **13-bit mux address** (`sd_addr[12:0]`), **2 banks**.
+- **24-bit word address** (`addr[23:0]`) → 16M words × 16-bit = **32 MB** (plenty for MSX2+).
+- **CAS latency 2**, tRCD = 3 cycles, **burst length 1**, single-access writes.
+- MODE register = `{3'b000, NO_WRITE_BURST=1, OP_MODE=00, CAS=2, ACCESS=0, BURST=000}`.
+- Byte strobes `udsn`/`ldsn` (active-low) select the two lanes; `rw` = write.
+- Designed for ~100 MHz; MSXnano runs 108 MHz — verify tRCD/CAS still close (or drop CAS to keep margin).
+
+## Recommended path — Option B: wrap cheyao's controller
+Now that we have the chip params, the cleaner route is: use **`cheyao icepi sdram.v`** as the
+physical controller (silicon-proven timing on THIS board) and write a small **arbiter** that
+maps memory.v's stable `ram_*`/`vram_*` ports onto its `addr[23:0]`/`din`/`dout`/`udsn`/`ldsn`/`rw`
+interface + the VDP/refresh slot logic. This keeps you off the Tang-Nano-specific row/col packing
+in the current FSM. (Option = edit memory.v's physical layer in place per the change-list above —
+lower diff but you inherit the 32-bit chip's address math; more error-prone.)
 
 ## Watch-outs
 - **Bandwidth halves** (2 bytes/access vs 4). MSX2+ (Z80 + V9958 VRAM) should be fine at 108 MHz —

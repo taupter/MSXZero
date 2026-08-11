@@ -2,7 +2,12 @@
 
 Fork of `Papipapito/MSXnano` (MSX2+ for Tang Nano 20K / Gowin). Goal: keep the MSX2+
 core (Z80, V9958, SCC/OPLL, Nextor) and swap the **Gowin platform layer** for **ECP5**.
-Practice project — work happens on branch `ecp5-f45-port`.
+Practice project — work is on `main` (the port branch was merged in + deleted).
+
+**Scope note:** the fork also emulates **ColecoVision + Sega SG-1000** (they reuse the same
+Z80 / VDP / PSG). Not needed here, but harmless — **keep them as-is, don't strip.** The port
+is purely the platform layer (clocks/constraints/video/SDRAM/companion); the emulated systems
+ride along unchanged.
 
 ## Target hardware (TESTED)
 **IcePi Zero** (Lattice ECP5, upgraded to **45F**) on the **MiSTle icepi_carrier**.
