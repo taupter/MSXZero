@@ -7,6 +7,25 @@ full synthesis, and on-hardware bring-up are still to do. See progress at the bo
 A fork of [Papipapito/MSXnano](https://github.com/Papipapito/MSXnano), being ported from the
 **Tang Nano 20K (Gowin)** to the **IcePi Zero (ECP5, 45F)** on the MiSTle **icepi_carrier**.
 
+## Progress (by stage)
+
+| Stage | Status | Done |
+|---|---|---|
+| Research / target lock-in (IcePi Zero + carrier) | complete | 100% |
+| Open-source toolchain (Yosys + nextpnr-ecp5 + ghdl) | installed & verified | 100% |
+| Clocks / PLL (`EHXPLLL`, 50→107.69/134.6/26.92/53.85) | synthesizes; phase to tune on HW | 90% |
+| Video output (ECP5 GPDI/TMDS) | RTL done, untested | 85% |
+| Constraints (`icepi.lpf`) | mapped; flash `USRMCLK` pending | 90% |
+| Gowin-primitive cleanup (BUFG, file list) | done | 85% |
+| Full synthesis (compile the whole design) | all VHDL analyzes; Yosys/GHDL mixed-elab next | 40% |
+| SDRAM controller (16-bit) | plan set (wrap NanoMig's tested one) | 15% |
+| Fit on the 45F (nextpnr place & route) | not started — unknown if MSX2+ fits | 0% |
+| On-hardware bring-up (HDMI / SDRAM / companion / DB9) | not started | 0% |
+| Extras (OPL4 MoonSound, etc.) | core vendored, not wired | 5% |
+| **Overall** | **platform RTL written, not yet built/run** | **~30%** |
+
+> "Written" is the easy part; the build-and-bring-up phase is where most of the remaining effort is.
+
 ## What the core is
 
 This is a complete **MSX2+ home computer** implemented in FPGA logic, plus two bonus consoles
