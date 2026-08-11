@@ -1,4 +1,4 @@
-# MSXnano-F45 — an MSX2+ computer on the Lattice ECP5 (IcePi Zero 45F)
+# MSXZero — an MSX2+ computer on the Lattice ECP5 (IcePi Zero 45F)
 
 **Status: work in progress — not finished. It does not build or run yet.**
 The FPGA platform layer (clocks, video output, constraints) is written; the SDRAM controller,
