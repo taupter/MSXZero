@@ -55,9 +55,16 @@ FPGA Companion (keyboard/SD/OSD).
    (drives P and inverse N as plain LVCMOS33 — icepi.lpf updated). Wired into `v9958_top.v`
    under ``ifdef ECP5`` (Gowin path kept as the `else`). Keeps MSXnano's TMDS encoding + its
    existing clk_pixel(27)/clk_pixel_x5(135) clocks. REMAINING for video:
-     - the VDP's own clock PLL `tn_vdp_v3_v9958/src/gowin/clk_135.v` is Gowin — port it to
-       `ecp5pll` (produce 27 MHz pixel + 135 MHz 5x from the 50 MHz osc).
-     - define `ECP5` in the build (e.g. `+define+ECP5`) to select the new path.
+     - VDP clock PLL DONE: `tn_vdp_v3_v9958/src/lattice/clk_135_ecp5.v` = ECP5 drop-in for the
+       Gowin `CLK_135` (27->135 via ecp5pll).
+     - STILL Gowin: the two dividers in top.v — `Gowin_CLKDIV` (108->27, clk_27m) and
+       `Gowin_CLKDIV2` (108->54, clk_54m). Port both.
+     - RECOMMENDED clean fix (instead of drop-in dividers): extend `clk_108p_ecp5.v` to 4 outputs
+       from the 50 MHz osc (VCO 540 MHz, all exact): 108 (out0), 108@180 (out1, SDRAM), 54 (out2),
+       27 (out3) — one PLL replaces CLK_108P + both dividers. Wrap the Gowin clock instances in
+       top.v with ``ifdef ECP5`` to use it; keep clk_135_ecp5 (27->135) in the VDP.
+       ECP5 clock tree: 50MHz -> [PLL] 108/108@180/54/27 -> VDP clk_27m -> [PLL] 135.
+     - define `ECP5` in the build (e.g. `+define+ECP5`) to select all the ECP5 paths.
      - then get a test pattern out HDMI on real hardware.
 4. **SDRAM** — IcePi is **16-bit** vs MSXnano's **32-bit** controller. Don't fight the 32-bit
    controller: adopt a **16-bit** one. `ulx3s_msx/src/sdram.v` shows the tested pattern — an
