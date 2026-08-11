@@ -19,7 +19,7 @@ A fork of [Papipapito/MSXnano](https://github.com/Papipapito/MSXnano), being por
 | Gowin-primitive cleanup (BUFG, file list) | done | 85% |
 | Full synthesis (compile the whole design) | all VHDL analyzes; Yosys/GHDL mixed-elab next | 40% |
 | SDRAM controller (16-bit) | plan set (wrap NanoMig's tested one) | 15% |
-| Fit on the 45F (nextpnr place & route) | not started — unknown if MSX2+ fits | 0% |
+| Fit on the 45F (nextpnr place & route) | not started — base MSX2+ **will** fit (already fits a smaller TN20K); the open question is how much extra (OPL4/V9968) the headroom allows | 0% |
 | On-hardware bring-up (HDMI / SDRAM / companion / DB9) | not started | 0% |
 | Extras (OPL4 MoonSound, etc.) | core vendored, not wired | 5% |
 | **Overall** | **platform RTL written, not yet built/run** | **~30%** |
