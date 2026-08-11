@@ -26,10 +26,20 @@ module memory_ctrl (
     output wire O_sdram_cas_n, // columns address select
     output wire O_sdram_ras_n, // row address select
     output wire O_sdram_wen_n, // write enable
+`ifdef ECP5
+    // DRAFT: 16-bit SDRAM physical layer for the IcePi Zero (UNTESTED - verify on hardware).
+    // Same MSX CPU/VDP arbitration + command FSM below; only the data width, byte lane,
+    // address packing and read/write muxes change. See fpga/SDRAM_PORT.md.
+    inout wire [15:0] IO_sdram_dq,   // 16 bit bidirectional data bus
+    output wire [12:0] O_sdram_addr, // 13 bit multiplexed address bus
+    output wire [1:0] O_sdram_ba,    // two banks
+    output wire [1:0] O_sdram_dqm    // 2 byte masks
+`else
     inout wire [31:0] IO_sdram_dq, // 32 bit bidirectional data bus
     output wire [10:0] O_sdram_addr, // 11 bit multiplexed address bus
     output wire [1:0] O_sdram_ba, // two banks
     output wire [3:0] O_sdram_dqm // 32/4
+`endif
 );
 
 	//`default_nettype none
@@ -41,10 +51,15 @@ module memory_ctrl (
     assign O_sdram_cas_n = SdrCmd[1];
     assign O_sdram_wen_n = SdrCmd[0];
 
+`ifdef ECP5
+    assign O_sdram_dqm[1] = SdrUdq;
+    assign O_sdram_dqm[0] = SdrLdq;
+`else
     assign O_sdram_dqm[3] = SdrHUdq;
     assign O_sdram_dqm[2] = SdrHLdq;
     assign O_sdram_dqm[1] = SdrUdq;
     assign O_sdram_dqm[0] = SdrLdq;
+`endif
     assign O_sdram_ba[1] = SdrBa[1];
     assign O_sdram_ba[0] = SdrBa[0];
 
@@ -119,8 +134,13 @@ module memory_ctrl (
     reg  SdrLdq;
     reg  SdrHUdq;
     reg  SdrHLdq;
+`ifdef ECP5
+    reg  [12:0] SdrAdr = 0;
+    reg  [15:0] SdrDat;
+`else
     reg  [10:0] SdrAdr = 0;
     reg  [31:0] SdrDat;
+`endif
     reg  [1:0] SdrSize = 2'b11;
 
     localparam [3:0] SdrCmd_de = 4'b1111;            //-- deselect
@@ -287,6 +307,10 @@ module memory_ctrl (
                             SdrHLdq <= 0;
                         end
                         else*/ if( video_dlclk == 0 ) begin
+`ifdef ECP5
+                            SdrUdq <= ~ sdram_addr[0];   // 16-bit: CPU byte lane by addr[0]
+                            SdrLdq <=   sdram_addr[0];
+`else
                             if ( sdram_addr[1] == 0 ) begin
                                 SdrUdq <= ~ sdram_addr[0];
                                 SdrLdq <= sdram_addr[0];
@@ -299,12 +323,18 @@ module memory_ctrl (
                                 SdrHUdq <= ~ sdram_addr[0];
                                 SdrHLdq <= sdram_addr[0];
                             end
+`endif
                         end
                         else begin
+`ifdef ECP5
+                            SdrUdq <= ~ vram_addr[0];    // 16-bit: VDP write byte lane (DRAFT - verify)
+                            SdrLdq <=   vram_addr[0];
+`else
                             SdrUdq <= ~vram_addr[16];
                             SdrLdq <=  vram_addr[16];
                             SdrHUdq <= 1; //~ vram_addr[16];
                             SdrHLdq <= 1; //vram_addr[16];
+`endif
                         end
                     end
                 end
@@ -333,11 +363,19 @@ module memory_ctrl (
                         SdrBa  <= { 1'b1, 1'b0 };                              //-- bank C+D
                     end
                     else*/ if( video_dlclk == 0 ) begin
+`ifdef ECP5
+                        SdrAdr <= {1'b0, sdram_addr[12:1]};   //-- 16-bit: cpu row = addr[12:1]
+`else
                         SdrAdr <= sdram_addr[12:2];   //-- cpu read/write
+`endif
                         SdrBa  <= sdram_addr[22:21];                         //-- bank A+B+C+D
                     end
                     else begin
+`ifdef ECP5
+                        SdrAdr <= {2'b0, vram_addr[11:1]};           //-- 16-bit: vdp row (DRAFT - verify)
+`else
                         SdrAdr <= vram_addr[10:0];                   //-- vdp read/write
+`endif
                         SdrBa  <= 2'b11;                                         //-- bank D
                     end
                 end
@@ -356,7 +394,11 @@ module memory_ctrl (
                     SdrAdr[7:0] <= sdram_addr[20:13];                                         //-- cpu read/write
                 end
                 else begin
+`ifdef ECP5
+                    SdrAdr[7:0] <= { 3'b111, vram_addr[16:12] };   //-- 16-bit: vdp col (DRAFT - verify)
+`else
                     SdrAdr[7:0] <= { 3'b111, vram_addr[15:11] };
+`endif
                 end
             end
             default: ; //null;
@@ -374,10 +416,18 @@ module memory_ctrl (
                         SdrDat <= 32'hffff_ffff;
                     end
                     else*/ if( video_dlclk == 0 ) begin
+`ifdef ECP5
+                        SdrDat <= { ram_din, ram_din };                                  //-- 16-bit cpu write
+`else
                         SdrDat <= { ram_din, ram_din, ram_din, ram_din };                //-- "101"(cpu write)
+`endif
                     end
                     else begin
+`ifdef ECP5
+                        SdrDat <= { vram_din, vram_din };                              //-- 16-bit vdp write
+`else
                         SdrDat <= { vram_din, vram_din, vram_din, vram_din };          //-- "111"(vdp write)
+`endif
                     end
                 end
             end
@@ -420,6 +470,12 @@ module memory_ctrl (
     always @ ( posedge clk_108m ) begin
         if( ff_sdr_seq_5 == 1 || ff_sdr_seq_6 == 1 ) begin
             if( SdrSta_4 == 1 ) begin                        //-- read cpu
+`ifdef ECP5
+                if( sdram_addr[0] == 1'b0 )   //-- 16-bit: byte by addr[0]
+                    RamDbi <= SdrDat[7:0];
+                else
+                    RamDbi <= SdrDat[15:8];
+`else
                 if( sdram_addr[1:0] == 2'b00 )
                     RamDbi <= SdrDat[7:0];
                 else if( sdram_addr[1:0] == 2'b01 )
@@ -428,6 +484,7 @@ module memory_ctrl (
                     RamDbi <= SdrDat[23:16];
                 else
                     RamDbi <= SdrDat[31:24];
+`endif
             end
         end
     end

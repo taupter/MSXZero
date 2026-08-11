@@ -73,10 +73,17 @@ module top
     output wire O_sdram_cas_n, // columns address select
     output wire O_sdram_ras_n, // row address select
     output wire O_sdram_wen_n, // write enable
+`ifdef ECP5
+    inout wire [15:0] IO_sdram_dq,   // 16 bit bidirectional data bus (IcePi)
+    output wire [12:0] O_sdram_addr, // 13 bit multiplexed address bus
+    output wire [1:0] O_sdram_ba,    // two banks
+    output wire [1:0] O_sdram_dqm    // 2 byte masks
+`else
     inout wire [31:0] IO_sdram_dq, // 32 bit bidirectional data bus
     output wire [10:0] O_sdram_addr, // 11 bit multiplexed address bus
     output wire [1:0] O_sdram_ba, // two banks
     output wire [3:0] O_sdram_dqm // 32/4
+`endif
 `ifdef ECP5
     ,
     // carrier DB9 joystick ports (via 74LCX07, active-low), on gpio[0..11]
