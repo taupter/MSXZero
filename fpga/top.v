@@ -136,9 +136,11 @@ end
 `ifdef ECP5
     // One ECP5 PLL makes 108 / 108@180 / 54 / 27 from the 50 MHz osc,
     // replacing CLK_108P + Gowin_CLKDIV (div4) + Gowin_CLKDIV2 (div2).
+    wire clk_135_top;   // phase-locked 135 MHz TMDS clock -> VDP
     clocks_ecp5 clk_all (
         .clkin_50(ex_clk_27m),
         .clk_108(clk_108m), .clk_108_n(clk_108m_n),
+        .clk_135(clk_135_top),
         .clk_54(clk_54m),   .clk_27(clk_27m),
         .locked(clock_locked)
     );
@@ -1345,6 +1347,9 @@ assign keyboard_addr = ppi_port_c[3:0];
         .s1 (0),
         .clk_50 (0),
         .clk_125 (0),
+`ifdef ECP5
+        .clk_135_ext (clk_135_top),
+`endif
 
     `ifdef ENABLE_V9958
         .reset_n (bus_reset_n ),

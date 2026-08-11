@@ -4,6 +4,9 @@ module v9958_top(
     input   clk,
     input   clk_50,
     input   clk_125,
+`ifdef ECP5
+    input   clk_135_ext,   // phase-locked 135 MHz TMDS clock from clocks_ecp5 (replaces internal CLK_135)
+`endif
  //   input   clk_111,
 
     input   s1,
@@ -137,6 +140,12 @@ module v9958_top(
     .I(s1_n)
     );
 
+`ifdef ECP5
+    // Use the phase-locked 135 MHz from the top-level PLL (clocks_ecp5) so pixel(27) and TMDS(135)
+    // share one VCO. Retires the internal CLK_135 (which couldn't be made from 27 on ECP5 anyway).
+    assign clk_135_w      = clk_135_ext;
+    assign clk_135_lock_w = 1'b1;
+`else
     CLK_135 clk_135_inst(
         .clkout(clk_135), //output clkout
         .lock(clk_135_lock_w), //output lock
@@ -148,6 +157,7 @@ module v9958_top(
     .O(clk_135_w),
     .I(clk_135)
     );
+`endif
 
     wire rst_n_w;
     assign rst_n_w = rst_n & clk_135_lock_w; 
