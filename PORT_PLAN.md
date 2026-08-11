@@ -22,7 +22,7 @@ FPGA Companion (keyboard/SD/OSD).
 - **`cheyao/icepi-zero`** — the board itself: `gateware/sdram/memtest/` (tested `sdram.v` +
   `ecp5pll.sv` + `.lpf`) and `gateware/dvi/` (GPDI/DVI). Proven bare-board building blocks.
 - **`lawrie/ulx3s_msx`** (`../_ref_ulx3s_msx`) — secondary: MSX-on-ECP5 *logic* patterns
-  (Verilog Z80, keyboard, video). ⚠️ No license → read/learn only, don't copy files in.
+  (Verilog Z80, keyboard, video). No license → read/learn only, don't copy files in.
 - **Author's own audit:** `fpga/AUDIT_PRE_PORT_60K.md` — read §1 before starting.
 
 ## The 4 port fronts — file map
@@ -44,7 +44,7 @@ FPGA Companion (keyboard/SD/OSD).
 - **Resource budget:** 45F is smaller than the ULX3S 85F — watch LUT/BRAM for MSX2+.
 
 ## Bring-up order (each step testable on real HW)
-1. **Clocks — ✅ DONE.** `fpga/src/lattice/clk_108p_ecp5.v` (drop-in for the Gowin `CLK_108P`)
+1. **Clocks — DONE.** `fpga/src/lattice/clk_108p_ecp5.v` (drop-in for the Gowin `CLK_108P`)
    makes 108 MHz 0°/180° from the 50 MHz IcePi osc, via BSD `ecp5pll.sv`. Build swaps
    `gowin/clk_108p.v` → `lattice/clk_108p_ecp5.v`. Downstream 27 MHz enable = /4 of 108, so
    MSX timing preserved. (Video pixel/TMDS clocks added in Step 3.)
