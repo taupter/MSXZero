@@ -106,5 +106,11 @@ Same core lineage, GPL-3.0. It's Gowin+DDR3 so the *platform* code isn't reusabl
 - **Board-abstraction structure** (`msx_console60k/`, `constraints/`, `ip/`) — reorganize our scattered
   `src/lattice/` into a clean `icepi/` board dir following this pattern.
 - **`opl3/`** — full OPL3 FM core; take it with OPL4 for MoonSound FM.
-- SKIP for now: `jt10` (YM2610, not MSX-standard), `v9968`/`video720` (enhanced VDP + 720p — likely
-  too big for a 45F; get basic V9958 working first). `check_timing.py` is a handy timing helper.
+- **`v9968` (LATER / MAYBE)** — this is **Takayuki Hara's (HRA!) accurate V9958 core** (`hra1129/V9968_Cartridge`,
+  formerly `th9958`), not a more-capable VDP. It's a *quality/accuracy* upgrade over MSXnano's older `tn_vdp`
+  V9958 (real compatibility bugfixes: VR-bit S#2 timing, LRMM, R#20/R#21; nicer HDMI scaling). Same MSX
+  capability. CATCHES: (1) **non-commercial license** (HRA! BSD-like, no selling — would make the whole
+  build non-sellable vs the current GPL); (2) bigger + Verilog replacing the VHDL VDP; (3) 45F fit unproven.
+  Decision: only after the base runs on the stock V9958, and only if you don't intend to sell boards.
+  `video720` (720p) pairs with it but likely won't fit a 45F.
+- SKIP: `jt10` (YM2610, not MSX-standard). `check_timing.py` is a handy timing helper.
