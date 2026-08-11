@@ -120,6 +120,16 @@ end
     //clocks
     wire clk_108m;
     wire clk_108m_n;
+`ifdef ECP5
+    // One ECP5 PLL makes 108 / 108@180 / 54 / 27 from the 50 MHz osc,
+    // replacing CLK_108P + Gowin_CLKDIV (div4) + Gowin_CLKDIV2 (div2).
+    clocks_ecp5 clk_all (
+        .clkin_50(ex_clk_27m),
+        .clk_108(clk_108m), .clk_108_n(clk_108m_n),
+        .clk_54(clk_54m),   .clk_27(clk_27m),
+        .locked(clock_locked)
+    );
+`else
     CLK_108P clk_main (
         .clkout(clk_108m), //output clkout
         .lock(clock_locked), //output lock
@@ -127,6 +137,7 @@ end
         .reset(0), //input reset
         .clkin(ex_clk_27m) //input clkin
     );
+`endif
 
     wire clk_enable_27m;
     wire clk_enable_54m;
@@ -138,11 +149,13 @@ end
     assign clk_enable_54m = ( cnt_clk_enable_27m[0] == 1 ) ? 1: 0;
 
     wire clk_27m;
+`ifndef ECP5
     Gowin_CLKDIV div4(
         .clkout(clk_27m), //output clkout
         .hclkin(clk_108m), //input hclkin
         .resetn(1) //input resetn
     );
+`endif  // ECP5: clk_27m comes from clocks_ecp5
 
     wire bus_clk_3m6;
     PINFILTER dn1(
@@ -182,11 +195,13 @@ end
     assign clk_falling_3m6_27 = (bus_clk_3m6_prev_27 == 1 && bus_clk_3m6_27 == 0);
 
     wire clk_54m;
+`ifndef ECP5
     Gowin_CLKDIV2 div2(
         .clkout(clk_54m), //output clkout
         .hclkin(clk_108m), //input hclkin
         .resetn(1) //input resetn
     );
+`endif  // ECP5: clk_54m comes from clocks_ecp5
 
     wire clk_enable_3m6_54;
     wire clk_falling_3m6_54;
