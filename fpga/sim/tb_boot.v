@@ -17,7 +17,7 @@ module tb_boot;
     wire [12:0] O_sdram_addr; wire [1:0] O_sdram_ba, O_sdram_dqm;
     wire [5:0] led; wire ws2812_led;
     wire [2:0] data_p, data_n; wire clk_p, clk_n;
-    wire mspi_cs, mspi_sclk, mspi_mosi;
+    wire mspi_cs, mspi_mosi;   // ECP5: mspi_sclk is via USRMCLK, not a port
     wire sd_sclk, sd_cmd, uart_tx, usb_uart_tx;
     wire [4:0] m0s;
     wire spi_sclk, spi_csn, spi_dir, spi_irqn;
@@ -31,7 +31,7 @@ module tb_boot;
         .spi_dat(spi_dat), .spi_irqn(spi_irqn),
         .led(led), .ws2812_led(ws2812_led),
         .data_p(data_p), .data_n(data_n), .clk_p(clk_p), .clk_n(clk_n),
-        .mspi_cs(mspi_cs), .mspi_sclk(mspi_sclk), .mspi_miso(mspi_miso), .mspi_mosi(mspi_mosi),
+        .mspi_cs(mspi_cs), .mspi_miso(mspi_miso), .mspi_mosi(mspi_mosi),
         .sd_sclk(sd_sclk), .sd_cmd(sd_cmd),
         .sd_dat0(sd_dat0), .sd_dat1(sd_dat1), .sd_dat2(sd_dat2), .sd_dat3(sd_dat3),
         .uart_tx(uart_tx), .uart_rx(uart_rx), .usb_uart_tx(usb_uart_tx),
@@ -53,7 +53,7 @@ module tb_boot;
     // liveness probes: count SDRAM clock edges, flash SPI edges, and sample the status LEDs
     integer sdr_edges = 0, flash_edges = 0;
     always @(posedge O_sdram_clk) sdr_edges = sdr_edges + 1;
-    always @(posedge mspi_sclk)  flash_edges = flash_edges + 1;
+    always @(negedge mspi_cs)    flash_edges = flash_edges + 1;  // flash selects (clk is now via USRMCLK)
 
     initial begin
         $display("t=0 starting full-design boot sim");

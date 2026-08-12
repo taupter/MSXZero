@@ -23,9 +23,9 @@ carrier = FPGA Companion (keyboard/SD/OSD). 50 MHz osc on pin `M1`.
 | **Synthesis + fit + bitstream** | ✅ 78% LUT on the 45F, routes, `msx_ecp5.bit` |
 | **SDRAM (16-bit)** | ✅ **memtest passes in sim, both CPU + VRAM ports** (narrowed `memory.v`, not NanoMig) |
 | **Boot-in-sim (C-BIOS)** | ✅ **the whole MSX boots in iverilog and the Z80 executes C-BIOS** from SDRAM (`tb_frame.v`). Frame render is the last mile |
-| `clk_54m` (Z80) timing | ⏳ routes ~30–36 vs 53.85 MHz — multicycle CPU, likely OK on HW (abc9 blocked, see docs) |
+| **`mspi_sclk` → `USRMCLK`** | ✅ flash config clock routed through the ECP5 `USRMCLK` primitive (`1/1`) — can boot from flash |
+| `clk_54m` (Z80) timing | ⏳ routes ~24–36 vs 53.85 MHz — multicycle CPU, likely OK on HW (abc9 blocked, see docs) |
 | On-hardware bring-up | ⏳ not started (board pending) — full procedure in `BRINGUP.md` |
-| `mspi_sclk` → `USRMCLK` | ⏳ flash config clock, needed to boot from flash |
 
 Key decisions made along the way:
 - **SDRAM:** narrow `memory.v`'s proven MSX CPU/VDP dot-clock interleaving to 16-bit — do NOT
@@ -37,8 +37,9 @@ Key decisions made along the way:
 - **Boot-in-sim** — ✅ done: the whole MSX runs in iverilog (`gen_full_sim.sh` + `tb_frame.v`), and with
   **C-BIOS pre-loaded** the **Z80 executes it** (`bios_reads` climbs). Remaining last-mile: run long
   enough for the VDP to draw (first VRAM write) and render `vram_dump.txt` to an image. C-BIOS init is
-  long; if VRAM stays empty, check the VDP→Z80 vblank interrupt path. See `fpga/sim/README.md`.
-- `mspi_sclk` → `USRMCLK`.
+  long; an 80 ms run confirmed C-BIOS spins in early init (VRAM stays empty) — the drawn screen needs
+  hardware (or a slot-detect/vblank-IRQ debug in the flattened netlist). See `fpga/sim/README.md`.
+- `mspi_sclk` → `USRMCLK` — ✅ done (flash config clock routes through USRMCLK).
 
 ## Next (needs the board — see `BRINGUP.md`)
 Bring-up order: **config → clocks (status LEDs) → HDMI test pattern → SDRAM phase tuning →

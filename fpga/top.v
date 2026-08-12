@@ -45,7 +45,9 @@ module top
 
     // flash
     output wire mspi_cs,
-    output wire mspi_sclk,
+`ifndef ECP5
+    output wire mspi_sclk,   // Gowin: a normal user pin
+`endif
     inout wire mspi_miso,
     inout wire mspi_mosi,
 
@@ -2242,6 +2244,16 @@ memory_ctrl mem1 (
                         `endif
     assign flash_write_terminate = (flash_write_counter == 8'd6) ? 1 : 0;
 
+    // Flash SPI clock: on ECP5 this is the config CCLK pin — user logic can only reach it through
+    // the USRMCLK primitive, never a normal IO. On Gowin it is a plain pin. So the flash controller
+    // drives an internal net, and the platform decides how it gets to the flash.
+    wire mspi_sclk_int;
+`ifdef ECP5
+    USRMCLK usrmclk_flash (.USRMCLKI(mspi_sclk_int), .USRMCLKTS(1'b0));  // TS=0 -> drive the clock out
+`else
+    assign mspi_sclk = mspi_sclk_int;
+`endif
+
     flash # (
         .STARTUP_WAIT(1)
     )
@@ -2249,7 +2261,7 @@ memory_ctrl mem1 (
     (
         .clk(clk_54m),
         .reset_n(bus_reset_n),
-        .SCLK(mspi_sclk),
+        .SCLK(mspi_sclk_int),
         .CS(mspi_cs),
         .MISO(mspi_miso),
         .MOSI(mspi_mosi),

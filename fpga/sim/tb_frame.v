@@ -14,7 +14,7 @@ module tb_frame;
     wire O_sdram_clk, O_sdram_cke, O_sdram_cs_n, O_sdram_cas_n, O_sdram_ras_n, O_sdram_wen_n;
     wire [12:0] O_sdram_addr; wire [1:0] O_sdram_ba, O_sdram_dqm;
     wire [5:0] led; wire ws2812_led; wire [2:0] data_p, data_n; wire clk_p, clk_n;
-    wire mspi_cs, mspi_sclk, mspi_mosi, sd_sclk, sd_cmd, uart_tx, usb_uart_tx;
+    wire mspi_cs, mspi_mosi, sd_sclk, sd_cmd, uart_tx, usb_uart_tx;  // ECP5: mspi_sclk is via USRMCLK, not a port
     wire [4:0] m0s; wire spi_sclk, spi_csn, spi_dir, spi_irqn;
     tri1 spi_dat, sd_dat0, sd_dat1, sd_dat2, sd_dat3;
 
@@ -24,7 +24,7 @@ module tb_frame;
         .ex_clk_27m(ex_clk_27m), .s1(s1), .s2(s2), .m0s(m0s),
         .spi_sclk(spi_sclk), .spi_csn(spi_csn), .spi_dir(spi_dir), .spi_dat(spi_dat), .spi_irqn(spi_irqn),
         .led(led), .ws2812_led(ws2812_led), .data_p(data_p), .data_n(data_n), .clk_p(clk_p), .clk_n(clk_n),
-        .mspi_cs(mspi_cs), .mspi_sclk(mspi_sclk), .mspi_miso(mspi_miso), .mspi_mosi(mspi_mosi),
+        .mspi_cs(mspi_cs), .mspi_miso(mspi_miso), .mspi_mosi(mspi_mosi),
         .sd_sclk(sd_sclk), .sd_cmd(sd_cmd), .sd_dat0(sd_dat0), .sd_dat1(sd_dat1), .sd_dat2(sd_dat2), .sd_dat3(sd_dat3),
         .uart_tx(uart_tx), .uart_rx(uart_rx), .usb_uart_tx(usb_uart_tx),
         .O_sdram_clk(O_sdram_clk), .O_sdram_cke(O_sdram_cke), .O_sdram_cs_n(O_sdram_cs_n),
@@ -69,19 +69,49 @@ module tb_frame;
         if (cmd==3'b100 && O_sdram_ba==3 && O_sdram_addr[8:5]==4'b1110) vram_writes = vram_writes+1;  // write, bank3, col 0xE0+ = VRAM
     end
 
-    task report; $display("  t=%0t: bios_reads=%0d vram_writes=%0d led=%b", $time, bios_reads, vram_writes, led); endtask
-    initial begin
-        #100000  report;
-        #400000  report;
-        #1500000 report;
-        #3000000 report;
-        // scan VRAM region for non-zero (a drawn screen)
-        begin : scan
-            integer i, nz; nz = 0;
-            for (i=0; i<(1<<24); i=i+4096) if (sdram.mem[i + (3<<22) + 9'h0E0] !== 16'h0000 && sdram.mem[i+(3<<22)+9'h0E0] !== 16'hxxxx) nz = nz+1;
+    // live status (flushed each report so the run can be monitored)
+    integer sf;
+    task report;
+        begin
+            $fdisplay(sf, "t=%0d us  bios_reads=%0d  vram_writes=%0d", $time/1000000, bios_reads, vram_writes);
+            $fflush(sf);
         end
-        $display("DONE: bios_reads=%0d vram_writes=%0d", bios_reads, vram_writes);
+    endtask
+
+    // read one VRAM byte from the SDRAM model (VDP mapping: bank3, row=V[11:1], col={111,V[16:12]}).
+    function [7:0] vram_byte(input integer V);
+        integer wi; reg [15:0] w;
+        begin
+            wi = (3<<22) | (((V>>1)&11'h7FF)<<9) | (9'h0E0 | ((V>>12)&5'h1F));
+            w = sdram.mem[wi];
+            vram_byte = V[0] ? w[15:8] : w[7:0];
+        end
+    endfunction
+
+    // dump the low 8KB of VRAM (name/pattern tables) as bytes — integer counter, no overflow.
+    task dump_vram;
+        integer fd, V, nz;
+        begin
+            fd = $fopen("sim/vram_dump.txt", "w"); nz = 0;
+            for (V=0; V<8192; V=V+1) begin
+                $fwrite(fd, "%02x\n", vram_byte(V));
+                if (vram_byte(V) !== 8'h00 && vram_byte(V) !== 8'hxx) nz = nz+1;
+            end
+            $fclose(fd);
+            $fdisplay(sf, "dumped sim/vram_dump.txt (non-zero bytes in low 8KB = %0d)", nz); $fflush(sf);
+        end
+    endtask
+
+    integer k;
+    initial begin
+        sf = $fopen("sim/frame_status.txt", "w");
+        for (k=0; k<40; k=k+1) begin
+            #2000000 report;                       // every 2ms
+            if (vram_writes > 400) begin           // screen is being drawn -> dump early and stop
+                dump_vram; $fdisplay(sf,"EARLY-DONE screen drawn"); $fflush(sf); $finish;
+            end
+        end
+        dump_vram; $fdisplay(sf,"DONE (80ms) bios_reads=%0d vram_writes=%0d", bios_reads, vram_writes); $fflush(sf);
         $finish;
     end
-    initial begin #12000000 $display("TIMEOUT"); $finish; end
 endmodule
