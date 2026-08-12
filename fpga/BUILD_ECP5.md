@@ -41,10 +41,11 @@ files the script includes/excludes (it drops the Gowin `clk_108p`, `gowin_clkdiv
 (`clocks_ecp5.v`, `bufg_ecp5.v`) and `tn_vdp_v3_v9958/src/hdmi/serializer_ecp5.sv`.
 
 ## Current status
-- ✅ Synthesizes, fits (78% LUT / 29% FF / 16% BRAM / 12% DSP on LFE5U-45F), routes, bitstream.
+- ✅ Synthesizes, fits (75% LUT / 29% FF / 16% BRAM / 12% DSP / 1 PLL / 1 USRMCLK on LFE5U-45F), routes, bitstream (~700 KB).
 - ✅ SDRAM controller memtest passes in sim (both CPU + VRAM ports, full 8 MB across 4 banks) — see `sim/README.md`.
-- ⏳ `clk_54m` (Z80) timing routes ~30–36 vs 53.85 MHz — multicycle CPU, likely fine on HW (`README.md`).
-- ⏳ On-hardware bring-up not started — procedure in `BRINGUP.md`.
-- ⏳ `mspi_sclk` → ECP5 `USRMCLK` (flash config clock) still pending.
+- ✅ **Full-design boot-in-sim**: the whole MSX runs in iverilog and the Z80 executes **C-BIOS** from SDRAM (`sim/tb_frame.v`). A drawn frame isn't reachable in sim (C-BIOS spins in early init before video) — the real screen comes from hardware.
+- ✅ **`mspi_sclk` → ECP5 `USRMCLK`** (flash config clock) — done; routes `1/1`, so the design can boot from flash.
+- ⏳ `clk_54m` (Z80) timing routes ~24–36 vs 53.85 MHz — multicycle CPU, likely fine on HW (`README.md`).
+- ⏳ On-hardware bring-up not started — procedure in `BRINGUP.md`. Next prep: HDMI test-pattern + on-HW SDRAM memtest harnesses.
 
 See `PORT_PLAN.md` (roadmap), `SDRAM_PORT.md` (memory), `BRINGUP.md` (hardware), `docs/abc9_issue.md`.

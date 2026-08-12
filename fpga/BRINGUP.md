@@ -29,8 +29,8 @@ openFPGALoader -b <icepi-zero>  msx_ecp5.bit      # SRAM (volatile, fast iterate
 # or flash it: openFPGALoader -f -b <icepi-zero> msx_ecp5.bit
 ```
 Tools present: `openFPGALoader`, `ecpprog`, `fujprog`, `openocd`. Confirm the board's `DONE`
-goes active (config succeeded). If config fails: check `SYSCONFIG` in the lpf and the flash clock
-(`mspi_sclk` must go through **USRMCLK**, not a pin — pending item).
+goes active (config succeeded). If config fails: check `SYSCONFIG` in the lpf. The flash clock
+(`mspi_sclk`) already routes through **USRMCLK** (not a pin) — done, so flash boot is wired up.
 ✅ Pass = board configures, DONE active.
 
 ## 2. Clocks / PLL lock
@@ -78,7 +78,7 @@ doesn't explain, that's the place to look (drop the CPU turbo, or revisit abc9 �
 | `clk_54m` Z80 timing | CPU instability (likely OK — multicycle) | stage 6; `docs/abc9_issue.md` |
 | HDMI 0.28% low | picky monitor won't sync | stage 3 |
 | DB9 joystick bit order | directions/buttons swapped | ASSUMPTION in top.v — verify, swap if needed |
-| Flash config clock (USRMCLK) | won't boot from flash | stage 1 (mspi_sclk → USRMCLK, pending) |
+| Flash config clock (USRMCLK) | won't boot from flash | stage 1 — done (mspi_sclk routes via USRMCLK) |
 | DB9 5V vs 3.3V | (per carrier 74LCX07 buffers — OK) | carrier handles level shifting |
 
 ## Debug resources on the board

@@ -31,7 +31,7 @@ These are the items needed to get a real MSX2+ running on hardware. This is the 
 | SDRAM controller (16-bit) | **narrow memory.v to 16-bit** (not wrap NanoMig). **memtest PASSES for BOTH ports** in sim (`fpga/sim/`, iverilog 4-state): CPU RAM (byte lanes, rows, **full 8 MB across all 4 banks**, no aliasing) **and** VRAM (8-bit write / 16-bit read, bank 3, no cross-interference). Whole data path validated; the 13/9 geometry rewrite was found unnecessary. Remaining: on-HW SDRAM phase tuning (board-only). `fpga/SDRAM_PORT.md`, `fpga/sim/README.md` | ~75% |
 | **Boot validation (full-design sim)** | **the whole MSX boots in iverilog and the Z80 executes C-BIOS** from SDRAM (`fpga/sim/`) — validates the CPU + memory + BIOS path logically (80 K+ steady BIOS fetches). A drawn frame is *not* reachable in this sim: C-BIOS spins in early init (slot-detect / vblank-IRQ) before video, so VRAM stays empty — the real screen comes from hardware (bring-up) | 80% |
 | On-hardware bring-up (HDMI / SDRAM / companion / DB9) | not started (board pending) — procedure/risks/tuning prepped in `fpga/BRINGUP.md`. Now "confirm + tune," not "debug from scratch" (design validated in sim) | 5% |
-| **Beta 1 overall** | **builds + fits + bitstreams; SDRAM validated; and it BOOTS + runs C-BIOS in sim. Only physical hardware bring-up remains (imminent, high-confidence)** | **~65%** |
+| **Beta 1 overall** | **builds + fits + bitstreams; SDRAM validated; boots + runs C-BIOS in sim; and the flash-boot path (`USRMCLK`) is closed — so *no FPGA glue remains*, only physical hardware bring-up (imminent, high-confidence)** | **~67%** |
 
 ### Table 2 — future features (after the fork boots)
 
