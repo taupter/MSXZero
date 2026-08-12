@@ -1,8 +1,9 @@
 # MSXZero — an MSX2+ computer on the Lattice ECP5 (IcePi Zero 45F)
 
-**Status: work in progress — not finished. It does not build or run yet.**
-The FPGA platform layer (clocks, video output, constraints) is written; the SDRAM controller,
-full synthesis, and on-hardware bring-up are still to do. See progress at the bottom.
+**Status: work in progress — builds, not yet run on hardware.**
+The whole core now **synthesizes, fits the 45F (78% logic), routes, and packs to a bitstream**
+on the open-source toolchain. What's left before it runs a real MSX2+: the 16-bit SDRAM
+adapter, `clk_54m` (Z80) timing closure, and on-hardware bring-up. See the progress tables below.
 
 A fork of [Papipapito/MSXnano](https://github.com/Papipapito/MSXnano), being ported from the
 **Tang Nano 20K (Gowin)** to the **IcePi Zero (ECP5, 45F)** on the MiSTle **icepi_carrier**.
@@ -91,20 +92,36 @@ Goal: keep the MSX2+ core, swap the **Gowin platform layer** for **ECP5**. Every
 behind `` `ifdef ECP5`` and lives in `fpga/src/lattice/`; the Gowin build stays intact.
 Target hardware: **IcePi Zero (ECP5-45F) + icepi_carrier** (the tested MiSTle board), RP2350 companion.
 
-**Done:**
+**Done — the core builds and fits:**
+- **The whole core synthesizes, fits, and packs to a bitstream** on the open-source flow
+  (Yosys + ghdl + nextpnr-ecp5 → `ecppack`). On the **LFE5U-45F**: **78% logic** (34360/43848
+  LUT4), 29% flip-flops, 16% block RAM, 12% DSP, 1 PLL — so the base MSX2+ fits with room to spare.
 - Clocks — `clocks_ecp5.v`: one `EHXPLLL` from the 50 MHz osc → 107.69 (sys) / 134.6 (TMDS) /
-  26.92 (pixel) / 53.85 MHz. (108 MHz is not reachable from 50 MHz; the whole system runs 0.28%
-  low — within HDMI tolerance, imperceptible for MSX.)
+  26.92 (pixel) / 53.85 MHz. (Exact 108 MHz isn't reachable from 50 MHz without an out-of-spec
+  2 MHz phase detector; the system runs 0.28% low — within HDMI tolerance, imperceptible for MSX.)
 - Video output — `serializer_ecp5.sv`: ECP5 `ODDRX1F` GPDI, replacing the Gowin `OSER10` + `ELVDS_OBUF`.
 - Constraints — `icepi.lpf`: clock, GPDI, 16-bit SDRAM, SD, flash, LEDs, buttons, companion SPI, DB9 joysticks.
-- Synthesis-clean-up — `bufg_ecp5.v` stub; the entire VHDL layer analyzes under `ghdl`.
-- Toolchain — open-source (Yosys + nextpnr-ecp5 + ghdl); `build_ecp5.sh` + `BUILD_ECP5.md`.
+- DB9 joysticks read natively by the PSG (added in this port), plus the RP2350 companion over SPI.
+- **Mixed-language build** — the tricky part. The SystemVerilog HDMI encoder is pre-converted with
+  **sv2v** (yosys can't parse its unpacked-array ports / `real` params); each VHDL boundary entity is
+  elaborated with **ghdl** and flattened to RTLIL (ghdl's `-read` crashes on multiple VHDL modules);
+  LUTs are mapped with **classic abc** (abc9 false-positives on the design's internal tri-state).
+  A dozen source nits Gowin silently tolerated are fixed (package shared-variables, `real`→integer
+  math, an async-load PSG envelope, a PSG tri-state loop, port-name case, a missing instance name).
+  See `fpga/build_ecp5.sh` + `BUILD_ECP5.md`.
 
-**Not done yet:**
-- Full synthesis (Yosys/GHDL mixed-language integration), then nextpnr fit (does MSX2+ fit a 45F?).
-- **SDRAM** — the IcePi SDRAM is 16-bit; plan is to wrap NanoMig's tested controller (`nanomig_sdram.sv`).
-- Flash clock (`mspi_sclk` → ECP5 `USRMCLK`), on-hardware bring-up (HDMI, SDRAM memtest, companion).
-- **OPL4** — wire in the vendored `opl4wave/YMF278B.sv` (redo its wave-ROM memory wrapper for ECP5). See PORT_PLAN.md.
+**In progress / remaining:**
+- **`clk_54m` (Z80) timing** — the design routes but this domain runs ~30–36 vs the 53.85 MHz target
+  (the T80 has long combinational paths). Options: abc9 once tri-state is resolved, a multicycle
+  constraint (the CPU is clock-enabled), or retiming.
+- **SDRAM (16-bit)** — decision made: **narrow the existing `memory.v`** (which already has the proven
+  MSX CPU/VDP dot-clock interleaving) to 16-bit, rather than wrap NanoMig's generic controller. NanoMig
+  confirms the IcePi geometry (13-row/9-col). The ECP5 read path is fixed (Gowin inferred the SDRAM and
+  fed reads back into a reg; ECP5 must read the real bus). Geometry fix + a memtest simulation (`fpga/sim/`)
+  are in progress. See `fpga/SDRAM_PORT.md`.
+- Flash config clock (`mspi_sclk` → ECP5 `USRMCLK`); on-hardware bring-up (HDMI picture, SDRAM memtest,
+  SD/Nextor boot, companion keyboard). The board is the last-mile validation — nothing here is silicon-tested yet.
+- **OPL4 / MoonSound** and other extras — see the "future features" table above and `PORT_PLAN.md`.
 
 ## Building
 
