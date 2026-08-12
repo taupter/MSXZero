@@ -47,13 +47,24 @@ module tb_memory;
         .ba(O_sdram_ba), .addr(O_sdram_addr), .dqm(O_sdram_dqm), .dq(IO_sdram_dq)
     );
 
-    // dot-clock windows: both high (CPU may request), then both low (access proceeds).
-    // Slow relative to clk_cpu so a full CPU handshake completes each window.
-    integer dc = 0;
-    always @(posedge clk_cpu) begin
-        dc <= dc + 1;
-        if (dc[4]) begin video_dhclk <= 1; video_dlclk <= 1; end
-        else       begin video_dhclk <= 0; video_dlclk <= 0; end
+    // Replicate the VDP dot-state machine (vdp_ssg.vhd) that generates dh/dl clk.
+    // Sequence (DH,DL): entering 01=(0,1) 11=(1,0) 10=(0,0) 00=(1,1). memory.v's ff_sdr_seq
+    // locks to video_dhclk (counts 000->111 while DH=1). DH rises with DL=0 entering 11 -> CPU
+    // access; DH rises with DL=1 entering 00 -> VDP access. Advance one dot-state every 8
+    // clk_108m cycles so ff_sdr_seq (8 states) fits in each DH-high window.
+    reg [1:0] dotstate = 2'b00;
+    integer dcnt = 0;
+    always @(posedge clk_108m) begin
+        dcnt <= dcnt + 1;
+        if (dcnt >= 7) begin
+            dcnt <= 0;
+            case (dotstate)
+                2'b00: begin dotstate <= 2'b01; video_dhclk <= 0; video_dlclk <= 1; end
+                2'b01: begin dotstate <= 2'b11; video_dhclk <= 1; video_dlclk <= 0; end
+                2'b11: begin dotstate <= 2'b10; video_dhclk <= 0; video_dlclk <= 0; end
+                2'b10: begin dotstate <= 2'b00; video_dhclk <= 1; video_dlclk <= 1; end
+            endcase
+        end
     end
 
     // one CPU transaction (write or read); returns when ram_busy drops
@@ -91,14 +102,28 @@ module tb_memory;
         repeat (12000) @(posedge clk_108m);
         $display("init done, starting memtest");
 
-        cpu_access(1, 23'h000100, 8'hA5);   // write
-        cpu_access(1, 23'h000101, 8'h5A);   // write (adjacent byte / other lane)
-        cpu_access(1, 23'h001000, 8'h3C);
+        // byte-lane test: adjacent bytes must not clobber each other
+        cpu_access(1, 23'h000100, 8'hA5);
+        cpu_access(1, 23'h000101, 8'h5A);   // other lane, same word
         check(23'h000100, 8'hA5);
         check(23'h000101, 8'h5A);
-        check(23'h001000, 8'h3C);
 
-        if (errors==0) $display("MEMTEST PASS");
+        // spread across rows / high address bits — catches geometry aliasing
+        cpu_access(1, 23'h001000, 8'h3C);
+        cpu_access(1, 23'h002001, 8'h11);
+        cpu_access(1, 23'h040000, 8'h22);   // bit 18
+        cpu_access(1, 23'h100000, 8'h33);   // bit 20
+        cpu_access(1, 23'h1FFFFF, 8'h44);   // near top of 2MB
+        check(23'h001000, 8'h3C);
+        check(23'h002001, 8'h11);
+        check(23'h040000, 8'h22);
+        check(23'h100000, 8'h33);
+        check(23'h1FFFFF, 8'h44);
+        // re-read the first ones: confirm the later writes didn't alias over them
+        check(23'h000100, 8'hA5);
+        check(23'h000101, 8'h5A);
+
+        if (errors==0) $display("MEMTEST PASS (%0d reads OK)", 12);
         else           $display("MEMTEST FAIL (%0d errors)", errors);
         $finish;
     end
