@@ -471,10 +471,12 @@ module memory_ctrl (
         if( ff_sdr_seq_5 == 1 || ff_sdr_seq_6 == 1 ) begin
             if( SdrSta_4 == 1 ) begin                        //-- read cpu
 `ifdef ECP5
+                // ECP5: read the ACTUAL bus. Gowin inferred the SDRAM and fed read data back
+                // into SdrDat; on ECP5 SdrDat is our (tri-stated) drive reg, so read IO_sdram_dq.
                 if( sdram_addr[0] == 1'b0 )   //-- 16-bit: byte by addr[0]
-                    RamDbi <= SdrDat[7:0];
+                    RamDbi <= IO_sdram_dq[7:0];
                 else
-                    RamDbi <= SdrDat[15:8];
+                    RamDbi <= IO_sdram_dq[15:8];
 `else
                 if( sdram_addr[1:0] == 2'b00 )
                     RamDbi <= SdrDat[7:0];
@@ -494,7 +496,11 @@ module memory_ctrl (
     always @ ( posedge clk_108m ) begin
             if( ff_sdr_seq_5 == 1 || ff_sdr_seq_6 == 1 ) begin
                 if( SdrSta == 3'b110 ) begin                        //-- read vdp
+`ifdef ECP5
+                    vram_dout <= IO_sdram_dq;   // ECP5: read the actual bus, not the drive reg
+`else
                     vram_dout <= { SdrDat[15:8], SdrDat[7:0] };
+`endif
                 end
             end
     end
