@@ -41,6 +41,7 @@ which is why the sample-based OPL4 is comfortable but the LUT-heavy V9968 is a c
 | OPL4 "super hi-res" samples (interpolation option) | idea only — cheap on the 45F, keep as A/B toggle vs authentic | 0% |
 | V9968 (accurate V9958, HRA!) | evaluate — LUT-heavy, tight at 78% base; measure standalone first | 0% |
 | MSXimus cherry-picks (test_hdmi / test_sdram harnesses, board abstraction) | noted in PORT_PLAN | 0% |
+| **Real cartridge slot** | a physical MSX cartridge edge connector — **not on the IcePi Zero** (no pins / 5V shifting), only when the project moves to a dedicated board. The core already has the interface (`ex_bus_*`/pinfilter in top.v, tied off now); the dedicated board wires it to real bidirectional IO through level shifters | 0% |
 
 > "Written" is the easy part; the build-and-bring-up phase is where most of the remaining effort is.
 
