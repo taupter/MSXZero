@@ -106,20 +106,20 @@ Target hardware: **IcePi Zero (ECP5-45F) + icepi_carrier** (the tested MiSTle bo
 - **Mixed-language build** — the tricky part. The SystemVerilog HDMI encoder is pre-converted with
   **sv2v** (yosys can't parse its unpacked-array ports / `real` params); each VHDL boundary entity is
   elaborated with **ghdl** and flattened to RTLIL (ghdl's `-read` crashes on multiple VHDL modules);
-  LUTs are mapped with **classic abc** (abc9 false-positives on the design's internal tri-state).
-  A dozen source nits Gowin silently tolerated are fixed (package shared-variables, `real`→integer
-  math, an async-load PSG envelope, a PSG tri-state loop, port-name case, a missing instance name).
-  See `fpga/build_ecp5.sh` + `BUILD_ECP5.md`.
+  LUTs are mapped with **classic abc** (abc9 hits a Yosys dev-build XAIGER bug — ruled out as a
+  design issue; see `fpga/docs/abc9_issue.md`). A dozen source nits Gowin silently tolerated are
+  fixed (package shared-variables, `real`→integer math, an async-load PSG envelope, a PSG tri-state
+  loop, port-name case, a missing instance name). See `fpga/build_ecp5.sh` + `BUILD_ECP5.md`.
 
 **In progress / remaining:**
-- **`clk_54m` (Z80) timing** — the design routes but this domain runs ~30–36 vs the 53.85 MHz target
-  (the T80 has long combinational paths). Options: abc9 once tri-state is resolved, a multicycle
-  constraint (the CPU is clock-enabled), or retiming.
-- **SDRAM (16-bit)** — decision made: **narrow the existing `memory.v`** (which already has the proven
-  MSX CPU/VDP dot-clock interleaving) to 16-bit, rather than wrap NanoMig's generic controller. NanoMig
-  confirms the IcePi geometry (13-row/9-col). The ECP5 read path is fixed (Gowin inferred the SDRAM and
-  fed reads back into a reg; ECP5 must read the real bus). Geometry fix + a memtest simulation (`fpga/sim/`)
-  are in progress. See `fpga/SDRAM_PORT.md`.
+- **`clk_54m` (Z80) timing** — the design routes but this domain runs ~30–36 vs the 53.85 MHz target.
+  The worst path is the **clock-enabled (multicycle)** T80 CPU, so it's very likely fine on hardware.
+  The clean fixes are blocked by open-source tool limits (nextpnr can't express multicycle; abc9 is
+  a dev-build bug) — see `fpga/docs/abc9_issue.md`. HW-confirm pending.
+- **SDRAM (16-bit)** — **narrow the existing `memory.v`** (which already has the proven MSX CPU/VDP
+  dot-clock interleaving) to 16-bit, not wrap NanoMig's generic controller. The ECP5 read path is
+  fixed (Gowin inferred the SDRAM and fed reads back into a reg; ECP5 must read the real bus).
+  **Memtest passes in sim for both ports** (`fpga/sim/`). See `fpga/SDRAM_PORT.md`.
 - Flash config clock (`mspi_sclk` → ECP5 `USRMCLK`); on-hardware bring-up (HDMI picture, SDRAM memtest,
   SD/Nextor boot, companion keyboard). The board is the last-mile validation — nothing here is silicon-tested yet.
 - **OPL4 / MoonSound** and other extras — see the "future features" table above and `PORT_PLAN.md`.

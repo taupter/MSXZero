@@ -1,41 +1,50 @@
-# ECP5 build recipe (IcePi Zero 45F)
+# Building MSXZero for the ECP5 (IcePi Zero 45F)
 
-The port keeps the Gowin build working: every ECP5 change is behind `` `ifdef ECP5``, and the
-ECP5-specific modules live in `src/lattice/`. To build for the IcePi Zero you must (1) **define
-`ECP5`**, (2) **add** the lattice files, and (3) **exclude** the Gowin vendor files (they define
-the same module names / use Gowin primitives).
+The whole core builds, fits the 45F, and packs a bitstream on the **open-source toolchain**.
+One command:
 
-## 1. Define
 ```
-+define+ECP5      # (Verilog `define ECP5) — selects clocks_ecp5, serializer_ecp5, BUFG stub, etc.
+cd fpga
+./build_ecp5.sh                              # -> msx_ecp5.bit
+EXTRA_DEFINES=-DBRINGUP_LEDS ./build_ecp5.sh # bring-up bitstream (status LEDs — see BRINGUP.md)
 ```
 
-## 2. Add (ECP5-only source)
-- `src/lattice/ecp5pll.sv`                       — BSD ECP5 PLL generator
-- `src/lattice/clocks_ecp5.v`                    — 50 -> 108/108@180/54/27 (replaces CLK_108P + both dividers)
-- `src/lattice/bufg_ecp5.v`                      — BUFG pass-through (ECP5 infers global routing)
-- `tn_vdp_v3_v9958/src/lattice/clk_135_ecp5.v`   — CLK_135 drop-in (27 -> 135)
-- `tn_vdp_v3_v9958/src/hdmi/serializer_ecp5.sv`  — GPDI output (ODDRX1F), replaces OSER10 + ELVDS_OBUF
-- constraints: `icepi.lpf`   (not `tang9k.cst`)
+## Prerequisites
+- **OSS CAD Suite** (yosys, nextpnr-ecp5, ghdl, ecppack, iverilog, ecppll). The script points at
+  `/Volumes/External/MiniST_Project/tools/oss-cad-suite` — edit `OSS=` at the top for your path.
+- **sv2v** (SystemVerilog→Verilog). Installed at `$OSS/bin/sv2v`. Get it from
+  github.com/zachjs/sv2v if missing.
 
-## 3. Exclude (Gowin-only — do NOT compile for ECP5)
-- `src/gowin/clk_108p.v`                     (Gowin rPLL; replaced by clocks_ecp5)
-- `src/gowin_clkdiv/gowin_clkdiv.v`          (Gowin CLKDIV; replaced by clocks_ecp5)
-- `src/gowin_clkdiv2/gowin_clkdiv2.vhd`      (Gowin CLKDIV; replaced by clocks_ecp5)
-- `tn_vdp_v3_v9958/src/gowin/clk_135.v`      (Gowin rPLL; replaced by clk_135_ecp5)
-- `tn_vdp_v3_v9958/src/hdmi/serializer.sv`   (Gowin OSER10; replaced by serializer_ecp5)
-- `src/lattice/clk_108p_ecp5.v`              (early 2-output CLK_108P drop-in; superseded by clocks_ecp5 — optional)
+## What the build does (and why each step exists)
+This is a **mixed-language** design — VHDL + Verilog + SystemVerilog — which the open flow can't
+just throw at yosys. `build_ecp5.sh` does:
 
-## How the selection works (no per-instance ifdefs needed for the drop-ins)
-- `CLK_135` and `BUFG` are selected purely by **which file** is in the list (same module name,
-  one definition wins). Their instantiations in `v9958_top.v` are untouched.
-- `clocks_ecp5` (new name) and `serializer_ecp5` (new name) are chosen by `` `ifdef ECP5`` in
-  `top.v` / `v9958_top.v`; the Gowin `CLK_108P` / `serializer` sit in the `` `else``.
-- `Gowin_CLKDIV` / `Gowin_CLKDIV2` instances are compiled out with `` `ifndef ECP5``; `clk_27m` /
-  `clk_54m` come from `clocks_ecp5` instead.
+0. **sv2v** — convert the SystemVerilog (HDMI encoder + `v9958_top.v`) to Verilog-2005. yosys's
+   Verilog frontend can't parse SV unpacked-array ports / `real` params; sv2v flattens them.
+1. **ghdl analyze** — compile all VHDL into a clean work library (skip-successful fixpoint, so a
+   package is never re-analyzed after a dependent — avoids the T80/T80_Pack obsolescence error).
+2. **ghdl → RTLIL per boundary entity** — each VHDL entity that Verilog instantiates is elaborated
+   with ghdl and **flattened to its own `.il`** (`gen/vhdl/`). Done per-entity because ghdl's
+   `-read` crashes deriving >1 VHDL module, and flattening absorbs shared sub-entities like `ram`
+   so nothing is re-defined. lpf1/lpf2 get `-gMSBI=11`.
+3. **yosys synth_ecp5** — read the `.il` modules + the plain `.v` + the sv2v output, then
+   `synth_ecp5 -flatten`. LUTs are mapped with **classic `abc -lut 4:7`**, not abc9 (abc9 hits a
+   Yosys dev-build XAIGER bug on this design — see `docs/abc9_issue.md`). → `msx_ecp5.json`.
+4. **nextpnr-ecp5** — place & route for `--45k --package CABGA256`, `icepi.lpf`,
+   `--lpf-allow-unconstrained` (unused m0s pins). → `msx_ecp5.config`.
+5. **ecppack** — pack the bitstream. → `msx_ecp5.bit`.
 
-## Still TODO before it will actually build/run
-- `mspi_sclk`: ECP5 flash clock is the config MCLK -> drive via `USRMCLK` primitive, not a pin.
-- Assign the companion SPI + joystick FPGA pins in `icepi.lpf` (from NanoMig `gpio[]` / J3).
-- Step 4: the 16-bit SDRAM controller (see `SDRAM_PORT.md`).
-- Pick a toolchain (Yosys+nextpnr-ecp5 or Diamond) and wire this file list into it.
+## ECP5 vs Gowin selection
+Every ECP5 change is behind `` `ifdef ECP5``; the Gowin build stays intact. Selection is by which
+files the script includes/excludes (it drops the Gowin `clk_108p`, `gowin_clkdiv*`, `clk_135`,
+`serializer.sv`) plus `ifdef`s in `top.v` / `v9958_top.v`. ECP5-only sources live in `src/lattice/`
+(`clocks_ecp5.v`, `bufg_ecp5.v`) and `tn_vdp_v3_v9958/src/hdmi/serializer_ecp5.sv`.
+
+## Current status
+- ✅ Synthesizes, fits (78% LUT / 29% FF / 16% BRAM / 12% DSP on LFE5U-45F), routes, bitstream.
+- ✅ SDRAM controller memtest passes in sim (both CPU + VRAM ports) — see `sim/README.md`.
+- ⏳ `clk_54m` (Z80) timing routes ~30–36 vs 53.85 MHz — multicycle CPU, likely fine on HW (`README.md`).
+- ⏳ On-hardware bring-up not started — procedure in `BRINGUP.md`.
+- ⏳ `mspi_sclk` → ECP5 `USRMCLK` (flash config clock) still pending.
+
+See `PORT_PLAN.md` (roadmap), `SDRAM_PORT.md` (memory), `BRINGUP.md` (hardware), `docs/abc9_issue.md`.

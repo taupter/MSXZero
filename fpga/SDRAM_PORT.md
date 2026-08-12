@@ -105,9 +105,17 @@ NanoMig is still the value: it **confirms the IcePi's SDRAM geometry** so we don
 Keep the bank scheme (CPU in bank A/B via `sdram_addr[22:21]`, VRAM in bank C/D) so CPU and
 VRAM don't alias. VRAM is 128 KB → fits one bank easily.
 
-## VERIFY BEFORE TRUSTING (this is the "never works first try" part)
-1. **Simulate**: drop in a Micron/ISSI SDR SDRAM Verilog model + a `memtest` bench (adapt
-   MSXimus `test_sdram/`); write/read walking patterns across CPU and VRAM regions, confirm no
-   aliasing and CAS-2 read data lands in the right cycle. Do this in Verilator/iverilog.
-2. **Frame dump**: boot BIOS in sim, dump VRAM → PNG; the MSX logo confirms VDP↔SDRAM timing.
-3. Only then trust on hardware (SDRAM phase/CPHASE tuning is the last, board-only step).
+## STATUS (2026-08): memtest PASSES in sim ✅
+1. **Simulate — DONE.** `fpga/sim/` (iverilog 4-state; a behavioral 16-bit SDRAM model + a
+   testbench that drives the VDP dot-clock cadence). CPU write→read round-trips across byte lanes,
+   rows, and high bits (2 MB) with no aliasing; VRAM 8-bit write / 16-bit read works, separate
+   bank, no cross-interference. See `sim/README.md`. Two real bugs were found + fixed here:
+   - **Read path:** the ECP5 read must latch `IO_sdram_dq` (the bus), NOT `SdrDat` (our tri-stated
+     drive reg = Z). Gowin's inferred-SDRAM magic hid this. (So ignore the older `vram_dout <=
+     SdrDat[15:0]` note above — the code now reads `IO_sdram_dq`.)
+   - **Power-up X-init:** FSM regs needed explicit `= 0` (real FPGA powers up to 0; 4-state sim didn't).
+   - The current geometry is 12-row/8-col = **2 MB** (enough for the MSX). The full 13/9 fix
+     (table above) is optional.
+2. **Frame dump** (still TODO): boot BIOS in sim, dump VRAM → PNG; the MSX logo would confirm the
+   whole VDP↔SDRAM↔core path.
+3. **Hardware** (board-only): SDRAM read-capture phase / CPHASE tuning is the last step — see `BRINGUP.md` stage 4.
