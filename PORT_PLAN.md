@@ -62,3 +62,17 @@ USB keyboard/gamepads (RP2350 companion over SPI). Both provisioned; bring-up ch
 
 **Dedicated-board bucket:** WiFi radio, RGB/SCART output, real cartridge slot — logic present/cheap, but
 the IcePi lacks the connectors / analog stage / level-shifting. They land together on the future board.
+
+## LUT-reduction backlog (75% is a toolchain story, not bloat)
+From the real build data (nextpnr util: 33166 LUT4, 18 BRAM, **0 distributed LUT-RAM**, 9 DSP), ranked
+by evidence — savings are *without removing any MSX feature*:
+1. **abc9 on a stable OSS CAD Suite** (~10–20%) — classic `abc -lut 4:7` maps looser than abc9; abc9 is
+   blocked only by a Yosys dev-build XAIGER bug (`docs/abc9_issue.md`). Rebuild on a tagged release.
+2. **De-dup the dual HDMI encoder** (~5–9%) — `v9958_top.v` instantiates TWO full `hdmi` encoders
+   (`hdmi_ntsc` VIC=2 + `hdmi_pal` VIC=17) and muxes one out (`pal_mode ? tmds_pal : tmds_ntsc`). The
+   encoder carries audio/data-island/BCH/TERC4 — collapse to one parameterized instance.
+3. Per-module attribution build (synth VDP / T80 / audio standalone) — diagnostic, if 1+2 aren't enough.
+- ❌ **Ruled out by data:** RAM/flatten duplication — BRAM is sane and there is *zero* distributed LUT-RAM,
+  so memories infer to block RAM correctly; the LUTs are genuine logic. Don't chase this.
+Target: 1+2 together ≈ 75% → ~60%. Why bigger than the TN20K: Gowin's proprietary synth + native
+primitives pack this RTL tighter than yosys + *classic* abc — a mapping story, plus the one real dup.
