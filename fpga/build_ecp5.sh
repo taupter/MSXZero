@@ -114,5 +114,10 @@ yosys -p "
 
 echo "== [4/4] nextpnr-ecp5 (45F, CABGA256) =="
 # --lpf-allow-unconstrained: the unused m0s[4:0] (M0S Dock) pins aren't in icepi.lpf.
-nextpnr-ecp5 --45k --package CABGA256 --json msx_ecp5.json --lpf icepi.lpf --lpf-allow-unconstrained --textcfg msx_ecp5.config \
-  && echo "P&R OK" || echo "P&R FAILED"
+nextpnr-ecp5 --45k --package CABGA256 --json msx_ecp5.json --lpf icepi.lpf --lpf-allow-unconstrained --textcfg msx_ecp5.config
+echo "P&R done (clk_54m timing not yet closed — see notes)"
+
+echo "== [5/5] ecppack -> bitstream =="
+# nextpnr writes the routed .config even when a clock fails timing, so we can still
+# pack a .bit (works for HDMI/SDRAM/etc; the Z80 domain wants timing closure first).
+[ -s msx_ecp5.config ] && ecppack msx_ecp5.config msx_ecp5.bit && ls -l msx_ecp5.bit
