@@ -301,8 +301,8 @@ reg [15:0] crc_out;
 reg crc_ena = 0;
 reg crc_bit;
 
-sd_crc_16(
-.BITVAL(crc_bit), 
+sd_crc_16 u_sd_crc_16 (
+.BITVAL(crc_bit),
 .ENABLE(crc_ena), 
 .BITSTRB(clk), 
 .CLEAR(crc_init), 

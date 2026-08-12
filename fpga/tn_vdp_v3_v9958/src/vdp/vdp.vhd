@@ -867,6 +867,8 @@ ARCHITECTURE RTL OF VDP IS
     SIGNAL VDPVRAMRDREQ                 : STD_LOGIC;
     SIGNAL VDPVRAMRDACK                 : STD_LOGIC;
     SIGNAL VDPR9PALMODE                 : STD_LOGIC;
+    -- ECP5 port: local replacement for the former package shared-variable.
+    SIGNAL CLOCKS_PER_LINE              : INTEGER RANGE 0 TO 2047;
 
     SIGNAL REG_R0_HSYNC_INT_EN          : STD_LOGIC;
     SIGNAL REG_R1_SP_SIZE               : STD_LOGIC;
@@ -1024,6 +1026,9 @@ BEGIN
     CX          <=  H_CNT;
     CY          <=  V_CNT;
     PAL_MODE    <=  VDPR9PALMODE;
+
+    -- ECP5 port: NTSC 1716 / PAL 1728 (was a package shared-variable).
+    CLOCKS_PER_LINE <= 1728 WHEN VDPR9PALMODE = '1' ELSE 1716;
 
     PRAMADR     <=  IRAMADR;
     XRAMSEL     <=  IRAMADR(16);

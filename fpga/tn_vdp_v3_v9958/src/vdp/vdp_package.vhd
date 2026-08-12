@@ -113,8 +113,13 @@ PACKAGE VDP_PACKAGE IS
     --
 
     -- NUMBER OF CLOCKS PER LINE, MUST BE A MULTIPLE OF 4
-    SHARED VARIABLE CLOCKS_PER_LINE                    : INTEGER RANGE 0 TO 2047 := 1716;
-    SHARED VARIABLE CLOCKS_PER_HALF_LINE               : INTEGER RANGE 0 TO 2047 := 858;
+    -- ECP5 port: ghdl-synth rejects package-level shared variables. These held the
+    -- H-timing (NTSC 1716/858, PAL 1728/864) as a global; each VDP entity now derives
+    -- them as a LOCAL signal of the same name from its own PAL-mode signal (the value
+    -- is purely a function of PAL mode). See CLOCKS_PER_LINE/HALF_LINE in vdp.vhd,
+    -- vdp_hvcounter, vdp_ntsc_pal, vdp_ssg, vdp_vga. Read sites are unchanged.
+--    SHARED VARIABLE CLOCKS_PER_LINE                    : INTEGER RANGE 0 TO 2047 := 1716;
+--    SHARED VARIABLE CLOCKS_PER_HALF_LINE               : INTEGER RANGE 0 TO 2047 := 858;
 --    SHARED VARIABLE CLOCKS_PER_LINE                    : INTEGER RANGE 0 TO 2047 := 1372;
 --    SHARED VARIABLE CLOCKS_PER_HALF_LINE               : INTEGER RANGE 0 TO 2047 := 686;
 

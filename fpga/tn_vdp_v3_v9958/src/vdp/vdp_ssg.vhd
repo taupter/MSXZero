@@ -166,7 +166,14 @@ ARCHITECTURE RTL OF VDP_SSG IS
     SIGNAL W_V_SYNC_INTR_START_LINE : STD_LOGIC_VECTOR(  8 DOWNTO 0 );
     SIGNAL FF_TOP_BORDER_LINES      : STD_LOGIC_VECTOR(8 DOWNTO 0);
 
+    -- ECP5 port: local replacement for the former package shared-variables.
+    SIGNAL CLOCKS_PER_LINE          : INTEGER RANGE 0 TO 2047;
+    SIGNAL CLOCKS_PER_HALF_LINE     : INTEGER RANGE 0 TO 2047;
+
 BEGIN
+
+    CLOCKS_PER_LINE      <= 1728 WHEN VDPR9PALMODE = '1' ELSE 1716;
+    CLOCKS_PER_HALF_LINE <=  864 WHEN VDPR9PALMODE = '1' ELSE  858;
     -----------------------------------------------------------------------------
     --  PORT ASSIGNMENT
     -----------------------------------------------------------------------------

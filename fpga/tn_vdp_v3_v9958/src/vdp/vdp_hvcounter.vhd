@@ -103,6 +103,10 @@ ARCHITECTURE RTL OF VDP_HVCOUNTER IS
     SIGNAL FF_FIELD_END             : STD_LOGIC;
     SIGNAL FF_HDMI_RESET            : STD_LOGIC;
 
+    -- ECP5 port: local replacement for the former package shared-variables.
+    SIGNAL CLOCKS_PER_LINE          : INTEGER RANGE 0 TO 2047;
+    SIGNAL CLOCKS_PER_HALF_LINE     : INTEGER RANGE 0 TO 2047;
+
     -- WIRE
     SIGNAL W_FIELD                  : STD_LOGIC;
     SIGNAL W_H_CNT_HALF             : STD_LOGIC;
@@ -151,23 +155,10 @@ BEGIN
         END IF;
     END PROCESS;
 
-    PROCESS( RESET, CLK21M )
-    BEGIN
-        IF( RESET = '1' )THEN
-            CLOCKS_PER_LINE         := 1716;
-            CLOCKS_PER_HALF_LINE    := 858;
-        ELSIF( CLK21M'EVENT AND CLK21M = '1' )THEN
-            IF( HDMI_RESET = '1' )THEN
-                IF (PAL_MODE = '0') THEN
-                    CLOCKS_PER_LINE         := 1716;
-                    CLOCKS_PER_HALF_LINE    := 858;
-                ELSE
-                    CLOCKS_PER_LINE         := 1728;
-                    CLOCKS_PER_HALF_LINE    := 864;
-                END IF;
-            END IF;
-        END IF;
-    END PROCESS;
+    -- ECP5 port: was a process writing package shared-variables; now a plain
+    -- combinational decode of the (registered) PAL mode. NTSC 1716/858, PAL 1728/864.
+    CLOCKS_PER_LINE      <= 1728 WHEN FF_PAL_MODE = '1' ELSE 1716;
+    CLOCKS_PER_HALF_LINE <=  864 WHEN FF_PAL_MODE = '1' ELSE  858;
 
     --------------------------------------------------------------------------
     --  HORIZONTAL COUNTER

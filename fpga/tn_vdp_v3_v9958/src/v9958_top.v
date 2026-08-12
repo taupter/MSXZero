@@ -461,7 +461,7 @@ module v9958_top(
     logic [9:0] tmds_ntsc [NUM_CHANNELS-1:0];
     hdmi #( .VIDEO_ID_CODE(2), 
             .DVI_OUTPUT(0), 
-            .VIDEO_REFRESH_RATE(59.94),
+            .VIDEO_REFRESH_RATE(5994), // ECP5 port: centi-Hz (was 59.94)
             .IT_CONTENT(1),
             .AUDIO_RATE(AUDIO_RATE), 
             .AUDIO_BIT_WIDTH(AUDIO_BIT_WIDTH),
@@ -488,7 +488,7 @@ module v9958_top(
     logic [9:0] tmds_pal [NUM_CHANNELS-1:0];
     hdmi #( .VIDEO_ID_CODE(17), 
             .DVI_OUTPUT(0), 
-            .VIDEO_REFRESH_RATE(50),
+            .VIDEO_REFRESH_RATE(5000), // ECP5 port: centi-Hz (was 50)
             .IT_CONTENT(0),
             .AUDIO_RATE(AUDIO_RATE), 
             .AUDIO_BIT_WIDTH(AUDIO_BIT_WIDTH),

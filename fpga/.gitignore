@@ -1,0 +1,9 @@
+# ghdl / yosys / nextpnr build artifacts
+*.o
+*.cf
+work-obj*.cf
+gen/
+yosys.log
+msx_ecp5.json
+msx_ecp5.config
+*.bit
