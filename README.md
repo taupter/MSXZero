@@ -27,7 +27,7 @@ These are the items needed to get a real MSX2+ running on hardware. This is the 
 | Bitstream (ecppack) | **done** — full flow RTL→synth→P&R→`msx_ecp5.bit` (~683 KB) | 100% |
 | `clk_54m` (Z80) timing | routes at ~30–36 MHz. But the worst path is the **clock-enabled** T80 CPU (runs at 3.58/5.37 MHz — the FFs advance ~1 in 10–15 base cycles), so it's genuinely **multicycle** and the 53.85 MHz check is far stricter than the CPU actually needs → very likely fine on hardware. Open-source tools can't *express* multicycle (nextpnr) or map it tighter — abc9 is blocked by a Yosys **dev-build XAIGER bug** (ruled out tri-state, real loops, and all black boxes — a pure LUT/FF design still trips it; see `fpga/docs/abc9_issue.md`). Classic abc is used instead. HW-confirm pending | 70% |
 | SDRAM controller (16-bit) | **narrow memory.v to 16-bit** (not wrap NanoMig). **memtest PASSES for BOTH ports** in sim (`fpga/sim/`, iverilog 4-state): CPU RAM (byte lanes, rows, 2 MB, no aliasing) **and** VRAM (8-bit write / 16-bit read, separate bank, no cross-interference). Whole data path validated. Remaining: on-HW SDRAM phase tuning (board-only); optional 13/9 geometry. `fpga/SDRAM_PORT.md`, `fpga/sim/README.md` | ~70% |
-| On-hardware bring-up (HDMI / SDRAM / companion / DB9) | not started | 0% |
+| On-hardware bring-up (HDMI / SDRAM / companion / DB9) | not started (board pending) — but the stage-by-stage procedure, known risks, and tuning knobs are prepped in `fpga/BRINGUP.md` | 5% |
 | **Beta 1 overall** | **synthesizes + fits the 45F; SDRAM validated in sim; timing likely OK (multicycle CPU); on-HW bring-up ahead** | **~55%** |
 
 ### Table 2 — future features (after the fork boots)
