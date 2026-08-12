@@ -393,7 +393,13 @@ module v9958_top(
 //    );
 
     assign gromclk = cpuclk_ena_n ? cpuclk_w : 1'b1; 
+`ifdef ECP5
+    // ECP5: no tri-stated clock net (was `1'bz`, held by a bus-keeper — flaky on real silicon).
+    // Here cpuclk_ena_n is tied 1 and the cpuclk output is unconnected, so gating to 0 is inert.
+    assign cpuclk = cpuclk_ena_n ? 1'b0 : cpuclk_w;
+`else
     assign cpuclk = cpuclk_ena_n ? 1'bz :  cpuclk_w;
+`endif
 //////////
 
     reg ff_video_reset;

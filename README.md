@@ -109,7 +109,8 @@ Target hardware: **IcePi Zero (ECP5-45F) + icepi_carrier** (the tested MiSTle bo
   LUTs are mapped with **classic abc** (abc9 hits a Yosys dev-build XAIGER bug — ruled out as a
   design issue; see `fpga/docs/abc9_issue.md`). A dozen source nits Gowin silently tolerated are
   fixed (package shared-variables, `real`→integer math, an async-load PSG envelope, a PSG tri-state
-  loop, port-name case, a missing instance name). See `fpga/build_ecp5.sh` + `BUILD_ECP5.md`.
+  loop, a tri-stated clock net → proper gated clock, port-name case, a missing instance name).
+  See `fpga/build_ecp5.sh` + `BUILD_ECP5.md`.
 
 **In progress / remaining:**
 - **`clk_54m` (Z80) timing** — the design routes but this domain runs ~30–36 vs the 53.85 MHz target.
