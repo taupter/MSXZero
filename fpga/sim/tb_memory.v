@@ -92,6 +92,27 @@ module tb_memory;
     end
     endtask
 
+    // VDP/VRAM port: streaming (no handshake). Hold the signals stable across VDP phases
+    // (video_dlclk==1) so the FSM performs the access. Writes are 8-bit (byte lane by
+    // vram_addr[0]); reads return the full 16-bit word.
+    task vram_wr(input [16:0] a, input [7:0] d);
+    begin
+        @(posedge clk_cpu);
+        vram_addr <= a; vram_din <= d; vram_write <= 1;
+        repeat (80) @(posedge clk_108m);   // ~2-3 VDP phases
+        vram_write <= 0;
+        repeat (16) @(posedge clk_108m);
+    end
+    endtask
+    task vram_ck(input [16:0] a, input [15:0] exp);
+    begin
+        vram_addr <= a; vram_write <= 0;
+        repeat (80) @(posedge clk_108m);   // wait for a VDP read + vram_dout latch
+        if (vram_dout === exp) $display("  VRAM  addr=%h -> %h  OK", a, vram_dout);
+        else begin $display("  VRAM  addr=%h -> %h  EXPECTED %h  ***FAIL***", a, vram_dout, exp); errors=errors+1; end
+    end
+    endtask
+
     initial begin
         $dumpfile("sim/tb_memory.vcd"); $dumpvars(0, tb_memory);
         bus_reset_n = 0;
@@ -123,7 +144,21 @@ module tb_memory;
         check(23'h000100, 8'hA5);
         check(23'h000101, 8'h5A);
 
-        if (errors==0) $display("MEMTEST PASS (%0d reads OK)", 12);
+        // ---- VDP / VRAM port memtest (bank 3) ----
+        // write both bytes of a word (even lane + odd lane), then read the 16-bit word
+        vram_wr(17'h01000, 8'hAB);   // even addr -> low byte
+        vram_wr(17'h01001, 8'hCD);   // odd  addr -> high byte
+        vram_ck(17'h01000, 16'hCDAB);
+        vram_wr(17'h00100, 8'h12);
+        vram_wr(17'h00101, 8'h34);
+        vram_ck(17'h00100, 16'h3412);
+        vram_wr(17'h1FFFE, 8'h77);   // near top of 128KB VRAM
+        vram_wr(17'h1FFFF, 8'h88);
+        vram_ck(17'h1FFFE, 16'h8877);
+        // confirm CPU RAM (bank 0) wasn't disturbed by VRAM (bank 3) writes
+        check(23'h000100, 8'hA5);
+
+        if (errors==0) $display("MEMTEST PASS (CPU + VRAM)");
         else           $display("MEMTEST FAIL (%0d errors)", errors);
         $finish;
     end

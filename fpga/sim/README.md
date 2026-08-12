@@ -19,10 +19,14 @@ Use **iverilog** (4-state) — the SDRAM data bus is tri-state (`inout`), which 
   one would add a cycle).
 - `tb_memory.v` — clocks, dot-clock windows, a CPU write→read self-check, and `[dbg]` probes.
 
-## State: MEMTEST PASSES
-CPU write→read round-trips correctly across byte lanes, multiple rows, and high address bits
-(up to 2 MB), with **no aliasing** (early writes survive later ones). This validates the ECP5
-read path + byte-lane handling in simulation. Three real issues were found + fixed getting here:
+## State: MEMTEST PASSES (CPU + VRAM)
+Both memory ports round-trip correctly:
+- **CPU RAM** (8-bit, bank 0): across byte lanes, rows, and high address bits (to 2 MB), **no aliasing**.
+- **VRAM** (8-bit write / 16-bit read, bank 3): byte lanes correct, 16-bit word assembled right
+  (`{odd,even}`), up to the top of 128 KB.
+- CPU and VRAM live in different banks and **don't disturb each other**.
+
+This validates the whole ECP5 SDRAM data path in simulation. Three real issues were found + fixed getting here:
 1. **Read path** — the ECP5 build latched `SdrDat` (our tri-stated drive reg = Z) instead of the
    `IO_sdram_dq` bus; Gowin's inferred-SDRAM magic hid this. Fixed in `memory.v`.
 2. **Power-up state** — several FSM regs (`ff_mem_seq`, `ff_sdr_seq`, `SdrSta`, …) were
