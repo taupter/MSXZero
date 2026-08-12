@@ -102,7 +102,10 @@ yosys -p "
   $RD
   read_verilog -sv -DECP5 $VLOG;
   hierarchy -top top;
-  synth_ecp5 -top top -flatten -json msx_ecp5.json
+  synth_ecp5 -top top -flatten -run :map_luts;
+  abc -lut 4:7;
+  clean;
+  synth_ecp5 -top top -run map_cells: -json msx_ecp5.json
 " 2>&1 | tee yosys.log
 # -flatten: needed so top-level constant straps (e.g. VDP FORCED_V_MODE tied to 1'b0)
 # propagate into the imported VHDL modules before dfflegalize, collapsing async-load
@@ -110,5 +113,6 @@ yosys -p "
 [ "${PIPESTATUS[0]}" = 0 ] || { echo "YOSYS FAILED"; exit 1; }
 
 echo "== [4/4] nextpnr-ecp5 (45F, CABGA256) =="
-nextpnr-ecp5 --45k --package CABGA256 --json msx_ecp5.json --lpf icepi.lpf --textcfg msx_ecp5.config \
+# --lpf-allow-unconstrained: the unused m0s[4:0] (M0S Dock) pins aren't in icepi.lpf.
+nextpnr-ecp5 --45k --package CABGA256 --json msx_ecp5.json --lpf icepi.lpf --lpf-allow-unconstrained --textcfg msx_ecp5.config \
   && echo "P&R OK" || echo "P&R FAILED"

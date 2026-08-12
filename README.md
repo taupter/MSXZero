@@ -17,12 +17,12 @@ A fork of [Papipapito/MSXnano](https://github.com/Papipapito/MSXnano), being por
 | Video output (ECP5 GPDI/TMDS) | RTL done, untested | 85% |
 | Constraints (`icepi.lpf`) | mapped; flash `USRMCLK` pending | 90% |
 | Gowin-primitive cleanup (BUFG, file list) | done | 85% |
-| Full synthesis (compile the whole design) | whole core maps to ECP5 primitives (~8.5k FF, 18 BRAM, 9 MULT18×18); one ABC9/tri-state tooling nit left (scc confirms no real logic loop) | 90% |
+| Full synthesis (compile the whole design) | **done** — the whole core maps to ECP5 primitives with the open-source flow | 100% |
 | SDRAM controller (16-bit) | proven controller vendored (NanoMig — tested on this exact board, the hard part done); adapter to CPU/VDP + arbitration + memtest remain | ~30% |
-| Fit on the 45F (nextpnr place & route) | not started — base MSX2+ **will** fit (already fits a smaller TN20K); the open question is how much extra (OPL4/V9968) the headroom allows | 0% |
+| Fit on the 45F (nextpnr place & route) | **confirmed it fits**: 78% logic (34360/43848 LUT4), 29% FF, 16% BRAM (18/108), 12% DSP (9/72), 1 PLL. ~22% LUT headroom + lots of free BRAM/DSP for OPL4/V9968 | 90% |
 | On-hardware bring-up (HDMI / SDRAM / companion / DB9) | not started | 0% |
 | Extras (OPL4 MoonSound, etc.) | core vendored, not wired | 5% |
-| **Overall** | **platform RTL written; synthesis all but complete; not yet on hardware** | **~38%** |
+| **Overall** | **synthesizes + fits the 45F (78% logic); SDRAM adapter + hardware bring-up ahead** | **~45%** |
 
 > "Written" is the easy part; the build-and-bring-up phase is where most of the remaining effort is.
 
