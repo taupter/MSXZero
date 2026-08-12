@@ -1,0 +1,26 @@
+## hdmi_test.lpf — constraints for the standalone HDMI test-pattern harness (bring-up stage 3).
+## Subset of icepi.lpf: just the 50 MHz clock, the GPDI pins, and the status LEDs.
+
+SYSCONFIG CONFIG_IOVOLTAGE=3.3 COMPRESS_CONFIG=ON MCCLK_FREQ=62 MASTER_SPI_PORT=DISABLE SLAVE_SPI_PORT=DISABLE SLAVE_PARALLEL_PORT=DISABLE;
+
+## ---- Clock: 50 MHz oscillator ----
+LOCATE COMP "ex_clk_27m" SITE "M1";
+IOBUF  PORT "ex_clk_27m" PULLMODE=NONE IO_TYPE=LVCMOS33;
+FREQUENCY PORT "ex_clk_27m" 50 MHZ;
+
+## ---- GPDI / HDMI (data_p/n[0]=Blue [1]=Green [2]=Red, clk_p/n=Clock) ----
+LOCATE COMP "data_p[0]" SITE "R13"; LOCATE COMP "data_n[0]" SITE "T14";
+LOCATE COMP "data_p[1]" SITE "R15"; LOCATE COMP "data_n[1]" SITE "T15";
+LOCATE COMP "data_p[2]" SITE "P16"; LOCATE COMP "data_n[2]" SITE "R16";
+LOCATE COMP "clk_p"     SITE "R12"; LOCATE COMP "clk_n"     SITE "T13";
+# LVCMOS33 on both pins (pseudo-differential), NOT LVCMOS33D.
+IOBUF PORT "data_p[0]" IO_TYPE=LVCMOS33 DRIVE=4; IOBUF PORT "data_n[0]" IO_TYPE=LVCMOS33 DRIVE=4;
+IOBUF PORT "data_p[1]" IO_TYPE=LVCMOS33 DRIVE=4; IOBUF PORT "data_n[1]" IO_TYPE=LVCMOS33 DRIVE=4;
+IOBUF PORT "data_p[2]" IO_TYPE=LVCMOS33 DRIVE=4; IOBUF PORT "data_n[2]" IO_TYPE=LVCMOS33 DRIVE=4;
+IOBUF PORT "clk_p"     IO_TYPE=LVCMOS33 DRIVE=4; IOBUF PORT "clk_n"     IO_TYPE=LVCMOS33 DRIVE=4;
+
+## ---- status LEDs (active-low) ----
+LOCATE COMP "led[0]" SITE "E13"; LOCATE COMP "led[1]" SITE "D14"; LOCATE COMP "led[2]" SITE "E12";
+LOCATE COMP "led[3]" SITE "C13"; LOCATE COMP "led[4]" SITE "D13";
+IOBUF PORT "led[0]" IO_TYPE=LVCMOS33; IOBUF PORT "led[1]" IO_TYPE=LVCMOS33; IOBUF PORT "led[2]" IO_TYPE=LVCMOS33;
+IOBUF PORT "led[3]" IO_TYPE=LVCMOS33; IOBUF PORT "led[4]" IO_TYPE=LVCMOS33;

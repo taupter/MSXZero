@@ -39,6 +39,16 @@ LED (stage 0) blinks, clocks are alive. Without LEDs, you're flying blind until 
 ✅ Pass = heartbeat blinks (or, next stage, HDMI syncs at all).
 
 ## 3. HDMI test pattern — FIRST BIG MILESTONE
+**Use the standalone harness — don't debug this inside the full MSX.** `bringup/build_hdmi_test.sh`
+builds `bringup/hdmi_test.bit` (~167 KB): just `clocks_ecp5` + the real `hdmi` encoder +
+`serializer_ecp5`, driving **8 colour bars** — no VDP/Z80/SDRAM. If it syncs, the *entire* output
+path is proven and any later "no picture" is upstream (the VDP), not the GPDI/clocks. It fits in
+**331 LUT4**, timing passes with huge margin (clk_135 ~300 MHz, clk_27 ~105 MHz), and `led[0]` lights
+when the PLL locks. (It uses DVI mode — video only; a rare HDMI-only monitor may prefer the full core.)
+```
+bash bringup/build_hdmi_test.sh
+openFPGALoader -b <icepi-zero> bringup/hdmi_test.bit
+```
 This proves PLL + pixel/TMDS clocks + the `serializer_ecp5` GPDI path in one shot. Expect
 **720×480 @ ~59.94 Hz** (NTSC). Notes:
 - The system runs **0.28% low** (107.69 not 108 MHz) — inside HDMI tolerance; most monitors lock
