@@ -1,9 +1,11 @@
 # MSXZero — an MSX2+ computer on the Lattice ECP5 (IcePi Zero 45F)
 
-**Status: work in progress — builds, not yet run on hardware.**
-The whole core now **synthesizes, fits the 45F (78% logic), routes, and packs to a bitstream**
-on the open-source toolchain. What's left before it runs a real MSX2+: the 16-bit SDRAM
-adapter, `clk_54m` (Z80) timing closure, and on-hardware bring-up. See the progress tables below.
+**Status: work in progress — builds + boots in sim, not yet run on hardware.**
+The whole core **synthesizes, fits the 45F (78% logic), routes, packs a bitstream**, its **SDRAM
+is validated in simulation** (both ports, full 8 MB), and — the big one — the **whole machine boots
+in a full-design simulation and the Z80 executes C-BIOS**. So the design is validated *logically*;
+what remains is the physical **on-hardware bring-up** (`clk_54m` timing is a likely-fine multicycle
+item). See the progress tables below.
 
 A fork of [Papipapito/MSXnano](https://github.com/Papipapito/MSXnano), being ported from the
 **Tang Nano 20K (Gowin)** to the **IcePi Zero (ECP5, 45F)** on the MiSTle **icepi_carrier**.
@@ -27,8 +29,9 @@ These are the items needed to get a real MSX2+ running on hardware. This is the 
 | Bitstream (ecppack) | **done** — full flow RTL→synth→P&R→`msx_ecp5.bit` (~683 KB) | 100% |
 | `clk_54m` (Z80) timing | routes at ~30–36 MHz. But the worst path is the **clock-enabled** T80 CPU (runs at 3.58/5.37 MHz — the FFs advance ~1 in 10–15 base cycles), so it's genuinely **multicycle** and the 53.85 MHz check is far stricter than the CPU actually needs → very likely fine on hardware. Open-source tools can't *express* multicycle (nextpnr) or map it tighter — abc9 is blocked by a Yosys **dev-build XAIGER bug** (ruled out tri-state, real loops, and all black boxes — a pure LUT/FF design still trips it; see `fpga/docs/abc9_issue.md`). Classic abc is used instead. HW-confirm pending | 70% |
 | SDRAM controller (16-bit) | **narrow memory.v to 16-bit** (not wrap NanoMig). **memtest PASSES for BOTH ports** in sim (`fpga/sim/`, iverilog 4-state): CPU RAM (byte lanes, rows, **full 8 MB across all 4 banks**, no aliasing) **and** VRAM (8-bit write / 16-bit read, bank 3, no cross-interference). Whole data path validated; the 13/9 geometry rewrite was found unnecessary. Remaining: on-HW SDRAM phase tuning (board-only). `fpga/SDRAM_PORT.md`, `fpga/sim/README.md` | ~75% |
-| On-hardware bring-up (HDMI / SDRAM / companion / DB9) | not started (board pending) — but the stage-by-stage procedure, known risks, and tuning knobs are prepped in `fpga/BRINGUP.md` | 5% |
-| **Beta 1 overall** | **synthesizes + fits the 45F; SDRAM validated in sim; timing likely OK (multicycle CPU); on-HW bring-up ahead** | **~55%** |
+| **Boot validation (full-design sim)** | **the whole MSX boots in iverilog and the Z80 executes C-BIOS** from SDRAM (`fpga/sim/`) — validates the CPU + memory + BIOS path logically. Frame render is the last mile | 80% |
+| On-hardware bring-up (HDMI / SDRAM / companion / DB9) | not started (board pending) — procedure/risks/tuning prepped in `fpga/BRINGUP.md`. Now "confirm + tune," not "debug from scratch" (design validated in sim) | 5% |
+| **Beta 1 overall** | **builds + fits + bitstreams; SDRAM validated; and it BOOTS + runs C-BIOS in sim. Only physical hardware bring-up remains (imminent, high-confidence)** | **~65%** |
 
 ### Table 2 — future features (after the fork boots)
 
