@@ -30,8 +30,11 @@ structural in our design** — it's a Yosys/abc9 (XAIGER) bug in this dev build.
 - XAIGER must topologically order abc9 "boxes" (RAM/DSP); a box dependency cycle SCC can't see
   would explain it — BUT we ruled that out (item 6). Also: past abc9 flop-bypass rules could
   model a false set/reset→output combinational path.
-- Likely a **dev-build regression**. A very similar case (yosys #4291, TM1638) was fixed ~0.51.
-  Our 0.68+48 is newer but a dev build can regress.
+- Likely a **dev-build regression**. Matching upstream reports:
+  - **yosys #4168** — identical error with `synth_ice40 -abc9`; removing `-abc9` fixed it.
+  - **yosys #4291** — same error on **ECP5**, `scc` reports no loops, XAIGER fails; fixed in a later release.
+  Our 0.68+48 is newer than that fix, but a dev branch can reintroduce a regression — the most
+  likely explanation given every structural cause here is ruled out.
 
 ## What to try when revisiting (in rough priority)
 1. **Switch to a stable tagged Yosys** (e.g. a release OSS CAD Suite snapshot), re-test abc9.

@@ -2763,12 +2763,23 @@ memory_ctrl mem1 (
         end
     end
 
+`ifdef BRINGUP_LEDS
+    // Bring-up indicators (build with -DBRINGUP_LEDS). Active-low: 0 = lit. See BRINGUP.md.
+    // Lets you confirm clocks + SDRAM are alive BEFORE HDMI/keyboard work.
+    assign led[0] = ~clock_locked;   // solid lit  = PLL locked (clocks up)
+    assign led[1] = ~led_heartbeat;  // blinking   = clocks actually running
+    assign led[2] = ~ram_busy;       // flickering = SDRAM being accessed
+    assign led[3] = ~reset3_n;       // lit        = reset released
+    assign led[4] = ~flash_idle;     // lit        = flash config FSM idle (boot ROM loaded)
+    assign led[5] = 1'b1;            // off
+`else
     assign led[5] = turbo ? 1'b0 : led_heartbeat;  // active-low: 0=solid lit (turbo ON), else heartbeat blink (real-MSX)
     assign led[4] = ~sd_busy_w;
     assign led[3] = ~joystick0[5];
     assign led[2] = ~joystick0[4];
     assign led[1] = ~(|joystick0[3:0]);
     assign led[0] = ~(|joystick1[5:0]);
+`endif
 
     // ===== External WS2812B status strip (8 LEDs, e.g. CJMCU-2812-8) on the case =====
     // One data pin (ws2812_led) drives the whole chain; colours from internal state.

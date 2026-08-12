@@ -100,7 +100,7 @@ echo "== [3/3] yosys synth_ecp5 =="
 RD=""; for f in $GENVHDL; do RD="$RD read_rtlil $f;"; done
 yosys -p "
   $RD
-  read_verilog -sv -DECP5 $VLOG;
+  read_verilog -sv -DECP5 ${EXTRA_DEFINES:-} $VLOG;
   hierarchy -top top;
   synth_ecp5 -top top -flatten -run :map_luts;
   abc -lut 4:7;

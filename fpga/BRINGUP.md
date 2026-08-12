@@ -9,11 +9,18 @@ Board facts (from `icepi.lpf`): 50 MHz osc on **M1**; 5 LEDs `led[0..4]` (E13/D1
 buttons **s1** user (C5), **s2** reset (C4); UART **tx=K15 / rx=K16** (IcePi FTDI); WS2812 on J3;
 GPDI clk/data pairs; 16-bit SDRAM; SD on P15/N16; RP2350 companion over SPI.
 
-## 0. Recommended BEFORE you power on: wire status to the LEDs
-The single highest-value bring-up aid. With no monitor/keyboard working yet, the 5 LEDs are your
-only window. Suggest (small, safe RTL): `led[0]=PLL locked`, `led[1]=SDRAM ready/init done`,
-`led[2..4]=a slow heartbeat counter bit` (blinks ⇒ clocks alive). Ask me to add this — it turns
-"nothing happens" into "clocks + SDRAM are up, video is the problem."
+## 0. Build the bring-up bitstream (status LEDs) FIRST
+The single highest-value bring-up aid — with no monitor/keyboard working yet, the LEDs are your
+only window. Already wired behind `BRINGUP_LEDS` (active-low, 0 = lit):
+- `led[0]` solid = **PLL locked** (clocks up)   · `led[1]` blinking = **clocks running** (heartbeat)
+- `led[2]` flicker = **SDRAM activity**   · `led[3]` = reset released   · `led[4]` = flash config idle
+
+```
+EXTRA_DEFINES=-DBRINGUP_LEDS ./build_ecp5.sh     # -> msx_ecp5.bit with status LEDs
+```
+This turns "nothing happens" into "clocks + SDRAM are up, so video is the problem." Do the whole
+bring-up on this bitstream; rebuild without the define once it boots. (Default build keeps the
+normal joystick/SD LEDs.)
 
 ## 1. Configure the FPGA
 ```
