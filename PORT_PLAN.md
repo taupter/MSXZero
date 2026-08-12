@@ -33,6 +33,9 @@ Key decisions made along the way:
 - **LUT mapping:** classic `abc` (abc9 hits a Yosys dev-build XAIGER bug; `docs/abc9_issue.md`).
 
 ## Next (no hardware needed)
+- **Boot-in-sim** (in progress): the whole MSX core runs in iverilog (`fpga/sim/gen_full_sim.sh` +
+  `tb_boot.v`) — clocks tick, it boots and streams the SPI flash. Next: feed it **C-BIOS** and
+  dump a VRAM frame. See `fpga/sim/README.md`.
 - `mspi_sclk` → `USRMCLK`.
 
 ## Next (needs the board — see `BRINGUP.md`)

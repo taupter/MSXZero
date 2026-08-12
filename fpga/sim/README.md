@@ -43,3 +43,31 @@ Notes / next:
   so the 13/9 rewrite is **not needed** (see `../SDRAM_PORT.md`).
 - **VDP-port memtest** (drive `vram_*` during the DL=1 phase, check 16-bit reads) — DONE; the remaining
   coverage; on-hardware SDRAM phase tuning is the final board-only step.
+
+---
+
+# Full-design boot simulation (whole MSX in iverilog)
+
+Beyond the `memory_ctrl` unit test above, the **entire mixed-language MSX2+ core** runs in iverilog.
+
+## How
+```
+./build_ecp5.sh                                                    # produces gen/ artifacts
+EXTRA_DEFINES="-DSIM_FAST_BOOT -DSIM_FAST_INIT" ./sim/gen_full_sim.sh   # -> sim/sim_msx.v
+iverilog -g2012 -o sim/simboot sim/tb_boot.v sim/sim_msx.v sim/ecp5_prims_sim.v sim/sdram_model.v
+vvp sim/simboot
+```
+- `gen_full_sim.sh` — yosys reads the whole design (VHDL `.il` + Verilog + sv2v), flattens, and writes
+  ONE behavioral Verilog. `memory_collect; setundef -init -zero` gives FFs a power-up 0 (real FPGA does;
+  4-state sim otherwise leaves them X and the boot FSM locks). Two registered `inout` pins
+  (`IO_sdram_dq`, `mspi_mosi`) that write_verilog emits as inout+reg are split into a wire + tri-state assign.
+- `ecp5_prims_sim.v` — behavioral `EHXPLLL` (clock tree from the divider params), `ODDRX1F`, `USRMCLK`.
+- `tb_boot.v` — drives the 50 MHz osc + reset, connects the SDRAM model, observes boot progress.
+- **`SIM_FAST_BOOT`** (top.v, ifdef, no synth impact) shortens the ~56 ms reset ramp + the ~3 s ESP/WiFi
+  hold (`esp_boot_ok`) that would otherwise make RTL sim of boot take hours.
+
+## State
+Clocks tick (108 MHz), reset releases, and the machine **actively boots — streaming the SPI flash**
+(the ROM-copy sequence). Next: a SPI-flash model / SDRAM pre-load with **C-BIOS** (open-source MSX BIOS)
+so the copied ROMs are real, then run to a **VRAM frame dump**. Boot copies flash `0x200000+` → SDRAM;
+BIOS ends at SDRAM `0x760000`, sub-ROM at `0x768000`.
