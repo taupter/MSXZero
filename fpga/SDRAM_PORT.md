@@ -67,3 +67,47 @@ lower diff but you inherit the 32-bit chip's address math; more error-prone.)
 - Byte-lane pattern: `ulx3s_msx/src/sdram.v` (`addr[0]` + `dqm={addr[0],~addr[0]}`).
 - Tested 16-bit controller + geometry: `cheyao/icepi-zero/gateware/sdram/memtest/sdram.v`.
 - IcePi SDRAM pins/width: `fpga/icepi.lpf` and NanoMig `nanomig.lpf`.
+
+---
+
+## DESIGN DECISION (2026-08-12): narrow memory.v — do NOT wrap NanoMig
+
+Two ways to get 16-bit SDRAM on the IcePi:
+- **A. Wrap NanoMig's `sdram` controller** (`src/lattice/nanomig_sdram.sv`). Proven physical
+  layer, BUT it's a generic 2-port request/`sync` controller — adopting it means re-building the
+  MSX's CPU/VDP **dot-clock interleaving** (the core streams VRAM on `video_dhclk`/`video_dlclk`,
+  not on a request/ack handshake). High risk in the MSX-specific timing.
+- **B. Narrow `memory.v`'s existing physical layer to 16-bit** (this file's plan). Keeps the
+  proven MSX interleaving + command FSM intact; only the data width, byte lane, and row/col/bank
+  packing change. **Chosen.** The SDRAM command protocol (tRCD, CAS-2, refresh, auto-precharge)
+  is the JEDEC standard both controllers already implement — only the *geometry* differs.
+
+NanoMig is still the value: it **confirms the IcePi's SDRAM geometry** so we don't have to guess.
+
+## CONFIRMED IcePi geometry (from NanoMig, DATA_WIDTH=16, ADDR_BASE=0)
+```
+16-bit data, 4 banks, 13-bit row, 9-bit col  (word address = byte_addr[.. :1])
+  COL (9) = word_addr[8:0]
+  RAS (13)= word_addr[21:9]
+  BA  (2) = word_addr[23:22]   (NanoMig uses bank 0 only; MSXnano separates CPU/VDP by bank)
+  A10 during CAS = auto-precharge
+  sd_dqm = byte strobe: addr[0] ? {1'b1, ds} : {ds, 1'b1}
+```
+
+## FIX NEEDED in memory.v's `ifdef ECP5` draft (currently 12-row/8-col = under-addressed)
+| field | draft now | should be (13/9) |
+|---|---|---|
+| CPU row (RAS) | `{1'b0, sdram_addr[12:1]}` (12b) | `sdram_addr[22:10]` (13b) = word[21:9] |
+| CPU col (CAS) | `sdram_addr[20:13]`→A[7:0] (8b) | `sdram_addr[9:1]`→A[8:0] (9b), A10=precharge |
+| VDP row | `{2'b0, vram_addr[11:1]}` | `vram_addr` word[.. :9] into 13b, in a VRAM bank |
+| VDP col | `{3'b111, vram_addr[16:12]}` | `vram_addr[9:1]`→A[8:0] (9b) |
+| byte lane | `SdrUdq=~addr[0]; SdrLdq=addr[0]` (OK) | keep |
+Keep the bank scheme (CPU in bank A/B via `sdram_addr[22:21]`, VRAM in bank C/D) so CPU and
+VRAM don't alias. VRAM is 128 KB → fits one bank easily.
+
+## VERIFY BEFORE TRUSTING (this is the "never works first try" part)
+1. **Simulate**: drop in a Micron/ISSI SDR SDRAM Verilog model + a `memtest` bench (adapt
+   MSXimus `test_sdram/`); write/read walking patterns across CPU and VRAM regions, confirm no
+   aliasing and CAS-2 read data lands in the right cycle. Do this in Verilator/iverilog.
+2. **Frame dump**: boot BIOS in sim, dump VRAM → PNG; the MSX logo confirms VDP↔SDRAM timing.
+3. Only then trust on hardware (SDRAM phase/CPHASE tuning is the last, board-only step).
