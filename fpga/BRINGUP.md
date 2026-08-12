@@ -90,7 +90,7 @@ menu. Needs the companion firmware running on the carrier's RP2350.
 ## 6. Boot the MSX — THE milestone
 BIOS + sub-ROM → MSX BASIC prompt; then SD/Nextor for disks. If stages 3–5 pass and it still
 won't boot, the prime suspects are (a) SDRAM phase (stage 4), and (b) the **`clk_54m` (Z80)
-timing** — it routes ~30–36 MHz vs the 53.85 MHz constraint. That path is the *clock-enabled*
+timing** — it routes ~24–36 MHz vs the 53.85 MHz constraint. That path is the *clock-enabled*
 (multicycle) CPU and should be fine, but if you see random crashes/instability that clean SDRAM
 doesn't explain, that's the place to look (drop the CPU turbo, or revisit abc9 — see
 `docs/abc9_issue.md`).

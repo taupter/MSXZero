@@ -20,7 +20,7 @@ carrier = FPGA Companion (keyboard/SD/OSD). 50 MHz osc on pin `M1`.
 | Constraints | ✅ `icepi.lpf` (clk, GPDI, 16-bit SDRAM, SD, flash, LEDs, buttons, companion SPI, DB9) |
 | Video out | ✅ `serializer_ecp5.sv` — ECP5 `ODDRX1F` GPDI (replaces Gowin OSER10 + ELVDS_OBUF) |
 | Mixed-language build | ✅ sv2v (SV) + ghdl→RTLIL per-module flatten (VHDL) + classic abc → `build_ecp5.sh` |
-| **Synthesis + fit + bitstream** | ✅ 78% LUT on the 45F, routes, `msx_ecp5.bit` |
+| **Synthesis + fit + bitstream** | ✅ 75% LUT on the 45F (+1 USRMCLK), routes, `msx_ecp5.bit` |
 | **SDRAM (16-bit)** | ✅ **memtest passes in sim, both CPU + VRAM ports** (narrowed `memory.v`, not NanoMig) |
 | **Boot-in-sim (C-BIOS)** | ✅ **the whole MSX boots in iverilog and the Z80 executes C-BIOS** from SDRAM (`tb_frame.v`). Frame render is the last mile |
 | **`mspi_sclk` → `USRMCLK`** | ✅ flash config clock routed through the ECP5 `USRMCLK` primitive (`1/1`) — can boot from flash |
@@ -53,7 +53,7 @@ companion/keyboard → MSX boot.** Then SD/Nextor.
 ## Future features (post-Beta-1 — see README "Table 2")
 - **OPL4 / MoonSound** — core vendored in `fpga/opl4wave/`; needs ECP5 wave-ROM memory + an OPL3 FM core.
 - **OPL4 hi-res sample option** — interpolation/oversampling toggle vs authentic.
-- **V9968** (accurate V9958) — LUT-heavy, tight at 78%; measure standalone first.
+- **V9968** (accurate V9958) — LUT-heavy, tight at 75% (see LUT-reduction backlog); measure standalone first.
 - **WiFi** — core hooks exist (`wifi_lite` + WiFi ROM + UART modem); needs an **ESP radio on a UART**
   (RP2350 has no built-in radio) + firmware bridge. Dedicated-board.
 - **RGB (SCART) video out** — the authentic 15 kHz MSX picture. VDP already makes the RGB; needs a
