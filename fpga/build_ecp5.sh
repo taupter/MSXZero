@@ -102,8 +102,11 @@ yosys -p "
   $RD
   read_verilog -sv -DECP5 $VLOG;
   hierarchy -top top;
-  synth_ecp5 -top top -json msx_ecp5.json
+  synth_ecp5 -top top -flatten -json msx_ecp5.json
 " 2>&1 | tee yosys.log
+# -flatten: needed so top-level constant straps (e.g. VDP FORCED_V_MODE tied to 1'b0)
+# propagate into the imported VHDL modules before dfflegalize, collapsing async-load
+# FFs ($aldff) into legal async-reset FFs ($adff).
 [ "${PIPESTATUS[0]}" = 0 ] || { echo "YOSYS FAILED"; exit 1; }
 
 echo "== [4/4] nextpnr-ecp5 (45F, CABGA256) =="

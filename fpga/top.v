@@ -1600,7 +1600,10 @@ memory_ctrl mem1 (
     assign psgBdir = ( bus_addr[7:3]== 5'b10100 && iorq_wr_n == 0 && bus_addr[1]== 0 ) ?  1 : 0; // I/O:A0-A2h / PSG(AY-3-8910) bdir = 1 when writing to &HA0-&Ha1
     assign psgBc1 = ( bus_addr[7:3]== 5'b10100 && ((iorq_rd_n==0 && bus_addr[1]== 1) || (bus_addr[1]==0 && iorq_wr_n==0 && bus_addr[0]==0))) ? 1 : 0; // I/O:A0-A2h / PSG(AY-3-8910) bc1 = 1 when writing A0 or reading A2
     assign psgPA =8'h00;
-    reg psgPB = 8'hff;
+    // ECP5 port: psgPB was double-declared (wire + reg=8'hff) -> multi-driver, and wiring
+    // O_IOB->psgPB->I_IOB is a tri-state loopback that yosys resolves into a combinational
+    // loop. Match psg2's idiom: port-B input tied high, output left open (same as port A here).
+    assign psgPB = 8'hff;
 
     wire clk_enable_1m8;
     reg clk_1m8_prev;
@@ -1626,7 +1629,7 @@ memory_ctrl mem1 (
         .O_IOA(),
         .O_IOA_OE_L(),
         .I_IOB(psgPB),
-        .O_IOB(psgPB),
+        .O_IOB(),          // ECP5 port: open (was psgPB loopback -> comb loop); input tied high above
         .O_IOB_OE_L(),
         
         .ENA(clk_enable_1m8), // clock enable for higher speed operation

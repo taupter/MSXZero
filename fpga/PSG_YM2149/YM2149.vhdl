@@ -418,7 +418,7 @@ begin
     end if;
   end process;
 
-  p_envelope_shape       : process(env_reset, CLK, reg)
+  p_envelope_shape       : process(CLK)  -- ECP5 port: synchronous (was async env_reset)
     variable is_bot    : boolean;
     variable is_bot_p1 : boolean;
     variable is_top_m1 : boolean;
@@ -445,7 +445,12 @@ begin
         -- 1 1 1 0  /\/\
         --
         -- 1 1 1 1  /___
-    if (env_reset = '1') then
+    if rising_edge(CLK) then
+     -- ECP5 port: env_reset is now handled SYNCHRONOUSLY. It loaded shape-dependent values
+     -- (reg(13)(2)) on an async edge = an async LOAD, which ECP5 FFs cannot do. CLK and clkHigh
+     -- are the same net in this design, so sampling env_reset on CLK restarts the envelope
+     -- correctly (one clock later at most; inaudible at PSG rates).
+     if (env_reset = '1') then
       -- load initial state
       if (reg(13)(2) = '0') then -- attack
         env_vol <= "11111";
@@ -456,7 +461,7 @@ begin
       end if;
       env_hold <= '0';
 
-    elsif rising_edge(CLK) then
+     else
       is_bot    := (env_vol = "00000");
       is_bot_p1 := (env_vol = "00001");
       is_top_m1 := (env_vol = "11110");
@@ -508,7 +513,8 @@ begin
           end if;
         end if;
       end if;
-    end if;
+     end if;
+    end if;  -- ECP5 port: closes the added `if rising_edge(CLK)`
   end process;
 
   p_chan_mixer           : process(cnt_div, reg, tone_gen_op)
