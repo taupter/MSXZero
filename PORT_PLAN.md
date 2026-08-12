@@ -40,6 +40,11 @@ Key decisions made along the way:
   long; an 80 ms run confirmed C-BIOS spins in early init (VRAM stays empty) — the drawn screen needs
   hardware (or a slot-detect/vblank-IRQ debug in the flattened netlist). See `fpga/sim/README.md`.
 - `mspi_sclk` → `USRMCLK` — ✅ done (flash config clock routes through USRMCLK).
+- **Bring-up harnesses** — ✅ done: `bringup/` has a standalone **HDMI test-pattern** (stage 3) and
+  **SDRAM memtest** (stage 4), each building to its own bitstream; the SDRAM one is sim-validated
+  ("SDRAM HARNESS: PASS"). They isolate the video + memory paths for fast board bring-up. See `BRINGUP.md`.
+- Next doable-now: the **LUT-reduction backlog** above (abc9 on a stable OSS CAD Suite + de-dup the
+  dual HDMI encoder) — measured before/after. Everything else waits for the board.
 
 ## Next (needs the board — see `BRINGUP.md`)
 Bring-up order: **config → clocks (status LEDs) → HDMI test pattern → SDRAM phase tuning →
