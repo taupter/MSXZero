@@ -58,6 +58,21 @@ This proves PLL + pixel/TMDS clocks + the `serializer_ecp5` GPDI path in one sho
 ✅ Pass = a stable picture on the monitor (even garbage VRAM is fine — it means video works).
 
 ## 4. SDRAM — the "never works first try" stage
+**Use the standalone memtest harness.** `bringup/build_sdram_test.sh` builds `bringup/sdram_test.bit`:
+the REAL `memory_ctrl` + `clocks_ecp5` + a memtest FSM (write pass then read/compare over the same
+byte-lane / row / high-bit / banks-0-1-2 vectors the sim proved), reporting on the LEDs — no VDP/Z80.
+It's validated in sim against the model (`bringup/tb_sdram_test.v` -> "SDRAM HARNESS: PASS"), fits in
+241 LUT4, and clk_54/SDRAM timing passes with big margin.
+```
+bash bringup/build_sdram_test.sh
+openFPGALoader -b <icepi-zero> bringup/sdram_test.bit
+# LEDs (active-low): led[1]=PASS  led[2]=FAIL  led[3]=done  led[4]=heartbeat
+```
+If PASS on hardware, the physical SDRAM data path + capture phase are good; if FAIL, tune the SDRAM
+clock phase (below) and re-flash. (Building this also caught a real reset bug: tying reset straight to
+PLL `locked` releases it the same edge the clock starts, so memory.v's sync reset never runs — the
+harness holds reset 255 cycles after lock; worth copying into the full core's reset if not already.)
+
 Memtest **passes in sim** (`fpga/sim/`), so the controller *logic* is right. The board risk is
 **physical read-capture timing**: the `clk_108m`→SDRAM data path phase. Symptoms of a phase
 problem: video shows garbage that never resolves, or the MSX boots but crashes/corrupts.

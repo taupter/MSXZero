@@ -17,3 +17,5 @@ sim/*.bak
 sim/cbios_*.hex
 sim/simframe
 sim/simboot
+sim/frame_status.txt
+sim/vram_dump.txt

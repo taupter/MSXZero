@@ -1,0 +1,42 @@
+## sdram_test.lpf — constraints for the standalone SDRAM memtest harness (bring-up stage 4).
+## 50 MHz clock + the 16-bit SDRAM pins + status LEDs. (addr[11:12] are driven by the 13-bit RTL
+## bus but not wired on the IcePi -> nextpnr with --lpf-allow-unconstrained, same as the main build.)
+
+SYSCONFIG CONFIG_IOVOLTAGE=3.3 COMPRESS_CONFIG=ON MCCLK_FREQ=62 MASTER_SPI_PORT=DISABLE SLAVE_SPI_PORT=DISABLE SLAVE_PARALLEL_PORT=DISABLE;
+
+## ---- Clock ----
+LOCATE COMP "ex_clk_27m" SITE "M1";
+IOBUF  PORT "ex_clk_27m" PULLMODE=NONE IO_TYPE=LVCMOS33;
+FREQUENCY PORT "ex_clk_27m" 50 MHZ;
+
+## ---- SDRAM (16-bit) ----
+LOCATE COMP "O_sdram_clk"   SITE "A3";  LOCATE COMP "O_sdram_cke"   SITE "B4";
+LOCATE COMP "O_sdram_cs_n"  SITE "B12"; LOCATE COMP "O_sdram_cas_n" SITE "B13";
+LOCATE COMP "O_sdram_ras_n" SITE "A12"; LOCATE COMP "O_sdram_wen_n" SITE "A13";
+LOCATE COMP "O_sdram_ba[0]" SITE "A11"; LOCATE COMP "O_sdram_ba[1]" SITE "B11";
+LOCATE COMP "O_sdram_dqm[0]" SITE "B14"; LOCATE COMP "O_sdram_dqm[1]" SITE "B3";
+LOCATE COMP "O_sdram_addr[0]" SITE "B10"; LOCATE COMP "O_sdram_addr[1]" SITE "A9";
+LOCATE COMP "O_sdram_addr[2]" SITE "B9";  LOCATE COMP "O_sdram_addr[3]" SITE "A8";
+LOCATE COMP "O_sdram_addr[4]" SITE "B8";  LOCATE COMP "O_sdram_addr[5]" SITE "A7";
+LOCATE COMP "O_sdram_addr[6]" SITE "B7";  LOCATE COMP "O_sdram_addr[7]" SITE "A6";
+LOCATE COMP "O_sdram_addr[8]" SITE "B6";  LOCATE COMP "O_sdram_addr[9]" SITE "A5";
+LOCATE COMP "O_sdram_addr[10]" SITE "A10";
+LOCATE COMP "IO_sdram_dq[0]" SITE "B16"; LOCATE COMP "IO_sdram_dq[1]" SITE "C14";
+LOCATE COMP "IO_sdram_dq[2]" SITE "C16"; LOCATE COMP "IO_sdram_dq[3]" SITE "C15";
+LOCATE COMP "IO_sdram_dq[4]" SITE "D16"; LOCATE COMP "IO_sdram_dq[5]" SITE "A15";
+LOCATE COMP "IO_sdram_dq[6]" SITE "B15"; LOCATE COMP "IO_sdram_dq[7]" SITE "A14";
+LOCATE COMP "IO_sdram_dq[8]" SITE "A2";  LOCATE COMP "IO_sdram_dq[9]" SITE "B2";
+LOCATE COMP "IO_sdram_dq[10]" SITE "E2"; LOCATE COMP "IO_sdram_dq[11]" SITE "D1";
+LOCATE COMP "IO_sdram_dq[12]" SITE "C2"; LOCATE COMP "IO_sdram_dq[13]" SITE "C1";
+LOCATE COMP "IO_sdram_dq[14]" SITE "C3"; LOCATE COMP "IO_sdram_dq[15]" SITE "B1";
+IOBUF PORT "O_sdram_clk" IO_TYPE=LVCMOS33 DRIVE=4; IOBUF PORT "O_sdram_cke" IO_TYPE=LVCMOS33 DRIVE=4;
+IOBUF PORT "O_sdram_cs_n" IO_TYPE=LVCMOS33 DRIVE=4; IOBUF PORT "O_sdram_cas_n" IO_TYPE=LVCMOS33 DRIVE=4;
+IOBUF PORT "O_sdram_ras_n" IO_TYPE=LVCMOS33 DRIVE=4; IOBUF PORT "O_sdram_wen_n" IO_TYPE=LVCMOS33 DRIVE=4;
+IOBUF PORT "O_sdram_ba[0]" IO_TYPE=LVCMOS33 DRIVE=4; IOBUF PORT "O_sdram_ba[1]" IO_TYPE=LVCMOS33 DRIVE=4;
+IOBUF PORT "O_sdram_dqm[0]" IO_TYPE=LVCMOS33 DRIVE=4; IOBUF PORT "O_sdram_dqm[1]" IO_TYPE=LVCMOS33 DRIVE=4;
+
+## ---- status LEDs (active-low) ----
+LOCATE COMP "led[0]" SITE "E13"; LOCATE COMP "led[1]" SITE "D14"; LOCATE COMP "led[2]" SITE "E12";
+LOCATE COMP "led[3]" SITE "C13"; LOCATE COMP "led[4]" SITE "D13";
+IOBUF PORT "led[0]" IO_TYPE=LVCMOS33; IOBUF PORT "led[1]" IO_TYPE=LVCMOS33; IOBUF PORT "led[2]" IO_TYPE=LVCMOS33;
+IOBUF PORT "led[3]" IO_TYPE=LVCMOS33; IOBUF PORT "led[4]" IO_TYPE=LVCMOS33;
