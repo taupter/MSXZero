@@ -11,3 +11,6 @@ obj_dir/
 yosys_vhdl.log
 sim/tb
 sim/*.vcd
+sim/sim_msx.v
+sim/simtop
+sim/*.bak
