@@ -37,9 +37,7 @@ end
 
 assign opll_wav = data_in << 4;
 
-lpf2 #(
-	.MSBI(11)
-	) filter1 (
+lpf2 filter1 (
         .clk21m (clk_27m),
         .reset (reset),
         .clkena (1'b1),
@@ -47,9 +45,7 @@ lpf2 #(
         .odata  (opll_wav1)
 	);
 
-lpf2 #(
-	.MSBI(11)
-	) filter2 (
+lpf2 filter2 (
         .clk21m (clk_27m),
         .reset (reset),
         .clkena (clk_enable_2m7),
@@ -57,9 +53,7 @@ lpf2 #(
         .odata  (opll_wav2)
 	);
 
-lpf2 #(
-	.MSBI(11)
-	) filter3 (
+lpf2 filter3 (
         .clk21m (clk_27m),
         .reset (reset),
         .clkena (clk_enable_270k),
@@ -67,9 +61,7 @@ lpf2 #(
         .odata  (opll_wav3)
 	);
 
-lpf1 #(
-	.MSBI(11)
-	) filter4 (
+lpf1 filter4 (
         .clk21m (clk_27m),
         .reset (reset),
         .clkena (clk_enable_270k),

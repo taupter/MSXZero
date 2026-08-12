@@ -17,7 +17,7 @@ while read -r kw path _; do
     tn_vdp_v3_v9958/src/gowin/clk_135.v|tn_vdp_v3_v9958/src/hdmi/serializer.sv) continue;;
   esac
   case "$path" in
-    *.vhd) VHDL="$VHDL $path";;
+    *.vhd|*.vhdl) VHDL="$VHDL $path";;  # PSG_YM2149/YM2149.vhdl uses the long extension
     # v9958_top.v is .v but uses SV unpacked arrays internally to wire the HDMI
     # encoder + serializer; convert it in the SAME sv2v run so those flatten consistently.
     tn_vdp_v3_v9958/src/v9958_top.v) VLOG_SV="$VLOG_SV $path";;
@@ -68,21 +68,44 @@ if [ -n "$remaining" ]; then
   echo "GHDL ANALYZE FAILED"; exit 1
 fi
 
-echo "== [2/3] yosys synth_ecp5 =="
-# Mixed-language import: `ghdl -read` loads ALL VHDL entities into the design as
-# modules ONCE each (shared sub-entities like `ram` are not duplicated), visible to
-# `hierarchy` so the Verilog instantiations bind to them. This replaces per-top
-# elaboration, which re-defined any entity shared between two tops. VHDL is passed
-# in dependency order (packages before users) via $VHDL_ORDER.
-VHDL_READ="${VHDL_ORDER:-$VHDL}"
-yosys -m ghdl -p "
-  ghdl -read --std=08 -fsynopsys -frelaxed $VHDL_READ;
+echo "== [2/3] VHDL boundary tops -> flattened Verilog =="
+# Mixed-language import. `ghdl -read` (load-all-then-derive) crashes the plugin when
+# more than one VHDL module is derived; per-top `ghdl <top>` elaboration re-defines
+# any sub-entity shared between two tops (e.g. `ram`, used by vdp AND scc_wave2).
+# So: elaborate each Verilog/VHDL-boundary entity in its OWN pass and `flatten` it,
+# absorbing shared sub-entities into the top -> each file is a single self-contained
+# module. ghdl preserves the entity's declared case, matching the Verilog instances.
+BOUNDARY="denoise g80a lpf1 lpf2 monostable ram scc_wave2 switched_io_ports usb_keyboard_msx vdp wifi ym2149"
+mkdir -p gen/vhdl
+: > yosys_vhdl.log
+GENVHDL=""
+for t in $BOUNDARY; do
+  # Generic overrides: the Verilog instantiates some entities with non-default generics.
+  # Flattened modules aren't parametric, so bake the generic in here (and the Verilog
+  # instance drops its #()). lpf1/lpf2: MSBI=11 (default 12) -> 12-bit audio ports.
+  # lpf1/lpf2: MSBI=11 (default 12); their VHDL entity is UPPERCASE (LPF1/LPF2) but the
+  # Verilog instances are lowercase, so rename the flattened top to match (yosys is case-sensitive).
+  gen=""; ren=""
+  case "$t" in lpf1|lpf2) gen="-gMSBI=11"; ren="rename -top $t;";; esac
+  # Write RTLIL (yosys native), NOT Verilog: write_verilog emits registered `inout`
+  # ports (e.g. swioports io41_id212_n) in a form its own reader rejects. RTLIL round-trips clean.
+  yosys -m ghdl -q -l yosys_vhdl.log -p \
+    "ghdl --std=08 -fsynopsys -frelaxed $gen $t; hierarchy -auto-top; flatten; opt_clean; $ren write_rtlil gen/vhdl/$t.il" \
+    || { echo "GHDL ELAB $t FAILED (see yosys_vhdl.log)"; exit 1; }
+  GENVHDL="$GENVHDL gen/vhdl/$t.il"
+done
+echo "  wrote $(echo $GENVHDL | wc -w) flattened VHDL modules (RTLIL) to gen/vhdl/"
+
+echo "== [3/3] yosys synth_ecp5 =="
+RD=""; for f in $GENVHDL; do RD="$RD read_rtlil $f;"; done
+yosys -p "
+  $RD
   read_verilog -sv -DECP5 $VLOG;
   hierarchy -top top;
   synth_ecp5 -top top -json msx_ecp5.json
 " 2>&1 | tee yosys.log
 [ "${PIPESTATUS[0]}" = 0 ] || { echo "YOSYS FAILED"; exit 1; }
 
-echo "== [3/3] nextpnr-ecp5 (45F, CABGA256) =="
+echo "== [4/4] nextpnr-ecp5 (45F, CABGA256) =="
 nextpnr-ecp5 --45k --package CABGA256 --json msx_ecp5.json --lpf icepi.lpf --textcfg msx_ecp5.config \
   && echo "P&R OK" || echo "P&R FAILED"

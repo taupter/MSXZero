@@ -17,14 +17,22 @@ A fork of [Papipapito/MSXnano](https://github.com/Papipapito/MSXnano), being por
 | Video output (ECP5 GPDI/TMDS) | RTL done, untested | 85% |
 | Constraints (`icepi.lpf`) | mapped; flash `USRMCLK` pending | 90% |
 | Gowin-primitive cleanup (BUFG, file list) | done | 85% |
-| Full synthesis (compile the whole design) | all VHDL analyzes; Yosys/GHDL mixed-elab next | 40% |
+| Full synthesis (compile the whole design) | runs the full synth_ecp5 flow (mapped to ECP5 cells); a few final design-check nits remain | 75% |
 | SDRAM controller (16-bit) | proven controller vendored (NanoMig — tested on this exact board, the hard part done); adapter to CPU/VDP + arbitration + memtest remain | ~30% |
 | Fit on the 45F (nextpnr place & route) | not started — base MSX2+ **will** fit (already fits a smaller TN20K); the open question is how much extra (OPL4/V9968) the headroom allows | 0% |
 | On-hardware bring-up (HDMI / SDRAM / companion / DB9) | not started | 0% |
 | Extras (OPL4 MoonSound, etc.) | core vendored, not wired | 5% |
-| **Overall** | **platform RTL written, not yet built/run** | **~30%** |
+| **Overall** | **platform RTL written; synthesis nearly clean; not yet on hardware** | **~35%** |
 
 > "Written" is the easy part; the build-and-bring-up phase is where most of the remaining effort is.
+
+**Toolchain note:** the open-source flow needed real integration work for this mixed
+VHDL/Verilog/SystemVerilog design: the SystemVerilog HDMI encoder is pre-converted with
+**sv2v** (yosys can't parse unpacked-array ports / `real` params); each VHDL boundary entity
+is elaborated with **ghdl** and flattened to RTLIL (the `-read` path crashes on multiple VHDL
+modules, and shared sub-entities like `ram` must not be re-defined); and several source nits
+that Gowin tolerated were fixed (package shared-variables, a missing instance name, port-name
+case, `real`→integer math). See `fpga/build_ecp5.sh` and `BUILD_ECP5.md`.
 
 ## What the core is
 

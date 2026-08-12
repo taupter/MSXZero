@@ -330,7 +330,7 @@ module v9958_top(
 		.PVIDEOCS_N			( VideoCS_n							),
 		.PVIDEODHCLK		( VideoDHClk						),
 		.PVIDEODLCLK		( VideoDLClk						),
-		.BLANK_o			( blank_o							),
+		.BLANK_O			( blank_o							),
 		.DISPRESO			( 1'b1      				        ),  // VGA 31Khz
 		.NTSC_PAL_TYPE		( 1'b1      						),
 		.FORCED_V_MODE		( 1'b0      						),

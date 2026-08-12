@@ -40,12 +40,12 @@ ENTITY LPF1 IS
     GENERIC (
         MSBI    : INTEGER := 12
     );
-    PORT(
-        CLK21M  : IN    STD_LOGIC;
-        RESET   : IN    STD_LOGIC;
-        CLKENA  : IN    STD_LOGIC;
-        IDATA   : IN    STD_LOGIC_VECTOR( MSBI DOWNTO 0 );
-        ODATA   : OUT   STD_LOGIC_VECTOR( MSBI DOWNTO 0 )
+    PORT(  -- ECP5 port: lowercase to match psg_filter.v's connections (yosys is case-sensitive)
+        clk21m  : IN    STD_LOGIC;
+        reset   : IN    STD_LOGIC;
+        clkena  : IN    STD_LOGIC;
+        idata   : IN    STD_LOGIC_VECTOR( MSBI DOWNTO 0 );
+        odata   : OUT   STD_LOGIC_VECTOR( MSBI DOWNTO 0 )
     );
 END LPF1;
 
@@ -103,12 +103,12 @@ ENTITY LPF2 IS
     GENERIC (
         MSBI    : INTEGER := 12
     );
-    PORT(
-        CLK21M  : IN    STD_LOGIC;
-        RESET   : IN    STD_LOGIC;
-        CLKENA  : IN    STD_LOGIC;
-        IDATA   : IN    STD_LOGIC_VECTOR( MSBI DOWNTO 0 );
-        ODATA   : OUT   STD_LOGIC_VECTOR( MSBI DOWNTO 0 )
+    PORT(  -- ECP5 port: lowercase to match psg_filter.v's connections (yosys is case-sensitive)
+        clk21m  : IN    STD_LOGIC;
+        reset   : IN    STD_LOGIC;
+        clkena  : IN    STD_LOGIC;
+        idata   : IN    STD_LOGIC_VECTOR( MSBI DOWNTO 0 );
+        odata   : OUT   STD_LOGIC_VECTOR( MSBI DOWNTO 0 )
     );
 END LPF2;
 

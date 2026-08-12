@@ -1042,11 +1042,9 @@ assign keyboard_addr = ppi_port_c[3:0];
     // guaranteed % knob). Do NOT enable both at once.
 
     wire update_addr;
-    G80a  #(
-        .Mode    (0),     // 0 => Z80, 1 => Fast Z80, 2 => 8080, 3 => GB
-        //.T2Write (0),     //0 => WR_n active in T3, /=0 => WR_n active in T2
-        .IOWait   (1)      // 0 => Single I/O cycle, 1 => Std I/O cycle
-    ) cpu1 (
+    // ECP5 port: Mode=0/IOWait=1 are g80a's generic defaults, already baked into the
+    // flattened VHDL module; yosys can't pass params to a non-parametric imported module.
+    G80a  cpu1 (
         .RESET_n   (bus_reset_n & reset3_n & flash_idle & esp_boot_ok),
         .CLK_n     (clk_54m),
     `ifdef ENABLE_WAIT
