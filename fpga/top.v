@@ -2200,7 +2200,11 @@ memory_ctrl mem1 (
     /// FLASH ROM LOADER - BIOS
     localparam FLASH_START_ADDRESS = 24'h200000;
     localparam RAM_START_ADDRESS = 23'h6fffff;
+`ifdef SIM_FAST_BOOT
+    localparam GOAULD_ROM_SIZE = 256;         // sim: skip the 512KB flash copy (BIOS is pre-loaded into SDRAM)
+`else
     localparam GOAULD_ROM_SIZE = 512*1024 + 6; //512KB + signature (AB) + config
+`endif
     reg ff_rom_wr = 0;
     reg [24:0] ff_rom_addr;
     

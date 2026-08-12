@@ -14,3 +14,6 @@ sim/*.vcd
 sim/sim_msx.v
 sim/simtop
 sim/*.bak
+sim/cbios_*.hex
+sim/simframe
+sim/simboot
