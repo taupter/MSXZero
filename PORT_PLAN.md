@@ -22,6 +22,7 @@ carrier = FPGA Companion (keyboard/SD/OSD). 50 MHz osc on pin `M1`.
 | Mixed-language build | ✅ sv2v (SV) + ghdl→RTLIL per-module flatten (VHDL) + classic abc → `build_ecp5.sh` |
 | **Synthesis + fit + bitstream** | ✅ 78% LUT on the 45F, routes, `msx_ecp5.bit` |
 | **SDRAM (16-bit)** | ✅ **memtest passes in sim, both CPU + VRAM ports** (narrowed `memory.v`, not NanoMig) |
+| **Boot-in-sim (C-BIOS)** | ✅ **the whole MSX boots in iverilog and the Z80 executes C-BIOS** from SDRAM (`tb_frame.v`). Frame render is the last mile |
 | `clk_54m` (Z80) timing | ⏳ routes ~30–36 vs 53.85 MHz — multicycle CPU, likely OK on HW (abc9 blocked, see docs) |
 | On-hardware bring-up | ⏳ not started (board pending) — full procedure in `BRINGUP.md` |
 | `mspi_sclk` → `USRMCLK` | ⏳ flash config clock, needed to boot from flash |
@@ -33,9 +34,10 @@ Key decisions made along the way:
 - **LUT mapping:** classic `abc` (abc9 hits a Yosys dev-build XAIGER bug; `docs/abc9_issue.md`).
 
 ## Next (no hardware needed)
-- **Boot-in-sim** (in progress): the whole MSX core runs in iverilog (`fpga/sim/gen_full_sim.sh` +
-  `tb_boot.v`) — clocks tick, it boots and streams the SPI flash. Next: feed it **C-BIOS** and
-  dump a VRAM frame. See `fpga/sim/README.md`.
+- **Boot-in-sim** — ✅ done: the whole MSX runs in iverilog (`gen_full_sim.sh` + `tb_frame.v`), and with
+  **C-BIOS pre-loaded** the **Z80 executes it** (`bios_reads` climbs). Remaining last-mile: run long
+  enough for the VDP to draw (first VRAM write) and render `vram_dump.txt` to an image. C-BIOS init is
+  long; if VRAM stays empty, check the VDP→Z80 vblank interrupt path. See `fpga/sim/README.md`.
 - `mspi_sclk` → `USRMCLK`.
 
 ## Next (needs the board — see `BRINGUP.md`)
@@ -46,5 +48,16 @@ companion/keyboard → MSX boot.** Then SD/Nextor.
 - **OPL4 / MoonSound** — core vendored in `fpga/opl4wave/`; needs ECP5 wave-ROM memory + an OPL3 FM core.
 - **OPL4 hi-res sample option** — interpolation/oversampling toggle vs authentic.
 - **V9968** (accurate V9958) — LUT-heavy, tight at 78%; measure standalone first.
+- **WiFi** — core hooks exist (`wifi_lite` + WiFi ROM + UART modem); needs an **ESP radio on a UART**
+  (RP2350 has no built-in radio) + firmware bridge. Dedicated-board.
+- **RGB (SCART) video out** — the authentic 15 kHz MSX picture. VDP already makes the RGB; needs a
+  **raw pre-scandouble 15 kHz tap + CSync generator** (modest logic) + an analog stage (video DAC + SCART).
+  Dedicated-board (no RGB connector on the IcePi). Sharper on a CRT than the HDMI upscale.
 - **Real cartridge slot** — only on a dedicated board (the `ex_bus_*` interface is tied off on the IcePi).
 - **Turbo-R / R800** — a whole new (fast) CPU; big-ticket, same tight-fit category as V9968.
+
+**Already Beta-1 (not future):** SD card (Nextor/MSX-DOS 2 — 4-bit SD pinned + microSD on carrier) and
+USB keyboard/gamepads (RP2350 companion over SPI). Both provisioned; bring-up checklist items.
+
+**Dedicated-board bucket:** WiFi radio, RGB/SCART output, real cartridge slot — logic present/cheap, but
+the IcePi lacks the connectors / analog stage / level-shifting. They land together on the future board.

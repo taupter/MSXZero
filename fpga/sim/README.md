@@ -66,8 +66,17 @@ vvp sim/simboot
 - **`SIM_FAST_BOOT`** (top.v, ifdef, no synth impact) shortens the ~56 ms reset ramp + the ~3 s ESP/WiFi
   hold (`esp_boot_ok`) that would otherwise make RTL sim of boot take hours.
 
-## State
-Clocks tick (108 MHz), reset releases, and the machine **actively boots — streaming the SPI flash**
-(the ROM-copy sequence). Next: a SPI-flash model / SDRAM pre-load with **C-BIOS** (open-source MSX BIOS)
-so the copied ROMs are real, then run to a **VRAM frame dump**. Boot copies flash `0x200000+` → SDRAM;
-BIOS ends at SDRAM `0x760000`, sub-ROM at `0x768000`.
+## State — C-BIOS boots; the Z80 executes it
+Clocks tick (108 MHz), reset releases, the machine boots, and with **C-BIOS pre-loaded into the SDRAM
+model** (`tb_frame.v`: 32 KB main @`0x760000` + 16 KB sub @`0x768000`, from `cbios_*.hex`), the **Z80
+fetches and runs C-BIOS** — `bios_reads` climbs steadily (thousands of instruction fetches from the
+BIOS region of SDRAM). This validates the CPU + memory + BIOS path *logically*.
+
+`tb_frame.v` also watches for **VDP VRAM writes** (bank 3, col `0xE0+`) and, once the screen is drawn,
+dumps the low 8 KB of VRAM (name/pattern tables) to `sim/vram_dump.txt` for offline rendering; live
+progress is flushed to `sim/frame_status.txt`. C-BIOS's init (RAM test / hardware setup) is long, so
+reaching the first VRAM write takes a lengthy sim run. `SIM_FAST_BOOT` skips the 512 KB flash copy
+(shrinks `GOAULD_ROM_SIZE`) since the ROMs are pre-loaded directly.
+
+Note: `cbios_main.hex` / `cbios_sub.hex` are generated locally from the C-BIOS ROMs
+(`od -An -v -tx1 <rom> | tr -s ' ' '\n'`) and are **gitignored** (don't redistribute the binaries).

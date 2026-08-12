@@ -44,7 +44,13 @@ which is why the sample-based OPL4 is comfortable but the LUT-heavy V9968 is a c
 | OPL4 "super hi-res" samples (interpolation option) | idea only — cheap on the 45F, keep as A/B toggle vs authentic | 0% |
 | V9968 (accurate V9958, HRA!) | evaluate — LUT-heavy, tight at 78% base; measure standalone first | 0% |
 | MSXimus cherry-picks (test_hdmi / test_sdram harnesses, board abstraction) | noted in PORT_PLAN | 0% |
+| **WiFi** | the MSX core already has the WiFi plumbing (the `wifi_lite` entity + WiFi ROM region + a UART modem — a vendored MSXnano feature). Gap is *physical*: the RP2350 has **no built-in radio**, so it needs an external **ESP module on a UART** (as MSXnano assumes) + a firmware bridge. Cheap hardware, a **dedicated-board** item | 0% |
+| **RGB (SCART) video out** | the *authentic* MSX picture — analog **RGB + composite sync at 15 kHz** (240p/288p) to a SCART TV / PVM / OSSC, sharper than the HDMI upscale. The VDP already produces the digital RGB at native rate; needs a **raw pre-scandouble 15 kHz tap + a CSync generator** (modest logic) and an analog output stage (**video DAC + SCART/DIN connector**). The IcePi has no RGB connector → **dedicated-board** | 0% |
 | **Real cartridge slot** | a physical MSX cartridge edge connector — **not on the IcePi Zero** (no pins / 5V shifting), only when the project moves to a dedicated board. The core already has the interface (`ex_bus_*`/pinfilter in top.v, tied off now); the dedicated board wires it to real bidirectional IO through level shifters | 0% |
+
+> **Not in this table (already Beta-1, provisioned both sides):** **SD card** (Nextor / MSX-DOS 2, 4-bit SD pinned in `icepi.lpf` + microSD on the carrier — mandatory, native FPGA logic) and **USB keyboard/gamepads** (via the RP2350 FPGA-Companion over SPI — needs companion firmware, not new logic). These are bring-up checklist items, not future features.
+
+The **dedicated-board** items above (WiFi radio, RGB/SCART output, real cartridge slot) share a theme: the *logic* is largely present or cheap, but the **IcePi Zero lacks the connectors / analog stage / level-shifting** for them. They come together when the project moves off the IcePi to its own board.
 
 > "Written" is the easy part; the build-and-bring-up phase is where most of the remaining effort is.
 
