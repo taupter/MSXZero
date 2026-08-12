@@ -7,3 +7,7 @@ yosys.log
 msx_ecp5.json
 msx_ecp5.config
 *.bit
+obj_dir/
+yosys_vhdl.log
+sim/tb
+sim/*.vcd

@@ -42,7 +42,7 @@ files the script includes/excludes (it drops the Gowin `clk_108p`, `gowin_clkdiv
 
 ## Current status
 - ✅ Synthesizes, fits (78% LUT / 29% FF / 16% BRAM / 12% DSP on LFE5U-45F), routes, bitstream.
-- ✅ SDRAM controller memtest passes in sim (both CPU + VRAM ports) — see `sim/README.md`.
+- ✅ SDRAM controller memtest passes in sim (both CPU + VRAM ports, full 8 MB across 4 banks) — see `sim/README.md`.
 - ⏳ `clk_54m` (Z80) timing routes ~30–36 vs 53.85 MHz — multicycle CPU, likely fine on HW (`README.md`).
 - ⏳ On-hardware bring-up not started — procedure in `BRINGUP.md`.
 - ⏳ `mspi_sclk` → ECP5 `USRMCLK` (flash config clock) still pending.
