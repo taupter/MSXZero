@@ -134,12 +134,17 @@ module tb_memory;
         cpu_access(1, 23'h002001, 8'h11);
         cpu_access(1, 23'h040000, 8'h22);   // bit 18
         cpu_access(1, 23'h100000, 8'h33);   // bit 20
-        cpu_access(1, 23'h1FFFFF, 8'h44);   // near top of 2MB
+        cpu_access(1, 23'h1FFFFF, 8'h44);   // top of bank 0 (2MB)
+        // cross SDRAM banks (bank = addr[22:21]) — proves the full 8 MB / 4-bank addressing
+        cpu_access(1, 23'h200100, 8'h55);   // bank 1
+        cpu_access(1, 23'h400100, 8'h66);   // bank 2
         check(23'h001000, 8'h3C);
         check(23'h002001, 8'h11);
         check(23'h040000, 8'h22);
         check(23'h100000, 8'h33);
         check(23'h1FFFFF, 8'h44);
+        check(23'h200100, 8'h55);           // bank 1
+        check(23'h400100, 8'h66);           // bank 2
         // re-read the first ones: confirm the later writes didn't alias over them
         check(23'h000100, 8'hA5);
         check(23'h000101, 8'h5A);

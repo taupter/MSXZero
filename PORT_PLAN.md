@@ -33,7 +33,6 @@ Key decisions made along the way:
 - **LUT mapping:** classic `abc` (abc9 hits a Yosys dev-build XAIGER bug; `docs/abc9_issue.md`).
 
 ## Next (no hardware needed)
-- Optional: 13/9 SDRAM geometry to use the full chip (2 MB already works, enough for the MSX).
 - `mspi_sclk` → `USRMCLK`.
 
 ## Next (needs the board — see `BRINGUP.md`)

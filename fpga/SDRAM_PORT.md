@@ -94,16 +94,24 @@ NanoMig is still the value: it **confirms the IcePi's SDRAM geometry** so we don
   sd_dqm = byte strobe: addr[0] ? {1'b1, ds} : {ds, 1'b1}
 ```
 
-## FIX NEEDED in memory.v's `ifdef ECP5` draft (currently 12-row/8-col = under-addressed)
-| field | draft now | should be (13/9) |
+## The 13/9 geometry change is NOT needed (resolved 2026-08)
+Earlier this doc called the 12-row/8-col draft "under-addressed." **It isn't.** The CPU uses
+**bank = `addr[22:21]` (2b) + row = `addr[12:1]` (12b) + col = `addr[20:13]` (8b) = `addr[22:1]`
+= the full 8 MB** across all 4 banks; VDP/VRAM sits in bank 3. Since the MSX core only generates a
+23-bit address (`ram_addr[22:0]`), it **cannot address beyond 8 MB anyway** — so switching to
+13-row/9-col (which would expose the chip's full 32 MB) buys nothing and only risks a subtle
+regression. **Verified in sim:** the memtest round-trips across banks 0/1/2 (`0x000100`, `0x200100`,
+`0x400100`) plus VRAM in bank 3, no aliasing. So the current geometry is correct for this design;
+the 13/9 rewrite was dropped.
+
+<details><summary>The 13/9 mapping (only if a future design needs the full chip)</summary>
+
+| field | now (12/8, 8 MB via banks) | 13/9 (full 32 MB — not needed) |
 |---|---|---|
-| CPU row (RAS) | `{1'b0, sdram_addr[12:1]}` (12b) | `sdram_addr[22:10]` (13b) = word[21:9] |
-| CPU col (CAS) | `sdram_addr[20:13]`→A[7:0] (8b) | `sdram_addr[9:1]`→A[8:0] (9b), A10=precharge |
-| VDP row | `{2'b0, vram_addr[11:1]}` | `vram_addr` word[.. :9] into 13b, in a VRAM bank |
-| VDP col | `{3'b111, vram_addr[16:12]}` | `vram_addr[9:1]`→A[8:0] (9b) |
-| byte lane | `SdrUdq=~addr[0]; SdrLdq=addr[0]` (OK) | keep |
-Keep the bank scheme (CPU in bank A/B via `sdram_addr[22:21]`, VRAM in bank C/D) so CPU and
-VRAM don't alias. VRAM is 128 KB → fits one bank easily.
+| CPU row (RAS) | `{1'b0, sdram_addr[12:1]}` | `sdram_addr[22:10]` |
+| CPU col (CAS) | `sdram_addr[20:13]`→A[7:0] | `sdram_addr[9:1]`→A[8:0], A10=precharge |
+| byte lane | `SdrUdq=~addr[0]; SdrLdq=addr[0]` | keep |
+</details>
 
 ## STATUS (2026-08): memtest PASSES in sim ✅
 1. **Simulate — DONE.** `fpga/sim/` (iverilog 4-state; a behavioral 16-bit SDRAM model + a
@@ -114,8 +122,8 @@ VRAM don't alias. VRAM is 128 KB → fits one bank easily.
      drive reg = Z). Gowin's inferred-SDRAM magic hid this. (So ignore the older `vram_dout <=
      SdrDat[15:0]` note above — the code now reads `IO_sdram_dq`.)
    - **Power-up X-init:** FSM regs needed explicit `= 0` (real FPGA powers up to 0; 4-state sim didn't).
-   - The current geometry is 12-row/8-col = **2 MB** (enough for the MSX). The full 13/9 fix
-     (table above) is optional.
+   - The geometry addresses the **full 8 MB** (bank+row+col, verified across banks 0/1/2 + VRAM
+     bank 3). The MSX can't address more, so the 13/9 rewrite is **not needed** (see section below).
 2. **Frame dump** (still TODO): boot BIOS in sim, dump VRAM → PNG; the MSX logo would confirm the
    whole VDP↔SDRAM↔core path.
 3. **Hardware** (board-only): SDRAM read-capture phase / CPHASE tuning is the last step — see `BRINGUP.md` stage 4.

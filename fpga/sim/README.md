@@ -38,8 +38,8 @@ This validates the whole ECP5 SDRAM data path in simulation. Three real issues w
    wrong cadence, every access looked like a VDP access.
 
 Notes / next:
-- The current geometry is 12-row/8-col → **2 MB** addressable, which passes and is enough for the
-  MSX (512 KB mapper RAM + 128 KB VRAM). The 13/9 fix (`../SDRAM_PORT.md`) would use the full chip
-  but isn't required for the core to work.
-- **VDP-port memtest** (drive `vram_*` during the DL=1 phase, check 16-bit reads) is the remaining
+- Geometry addresses the **full 8 MB** (bank=`addr[22:21]` + row=`addr[12:1]` + col=`addr[20:13]`),
+  verified in the test across banks 0/1/2 + VRAM in bank 3, no aliasing. The MSX can't address more,
+  so the 13/9 rewrite is **not needed** (see `../SDRAM_PORT.md`).
+- **VDP-port memtest** (drive `vram_*` during the DL=1 phase, check 16-bit reads) — DONE; the remaining
   coverage; on-hardware SDRAM phase tuning is the final board-only step.
