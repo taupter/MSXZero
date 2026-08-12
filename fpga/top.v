@@ -317,7 +317,11 @@ end
         end
         else begin
             rst_step <= 0;
-            if ( counter_reset <= 21'b100000000000000000000 ) 
+`ifdef SIM_FAST_BOOT
+            if ( counter_reset <= 21'd63 )   // sim: shorten the ~56ms reset ramp
+`else
+            if ( counter_reset <= 21'b100000000000000000000 )
+`endif
                 counter_reset <= counter_reset + 1;
             else begin
                 rst_step <= 1;
@@ -872,7 +876,11 @@ assign keyboard_addr = ppi_port_c[3:0];
     reg        esp_boot_ok  = 0;
     always @(posedge clk_27m) begin
         if (!esp_boot_ok) begin
+`ifdef SIM_FAST_BOOT
+            if (esp_boot_cnt == 27'd2000)       // sim: shorten the ~3s ESP hold
+`else
             if (esp_boot_cnt == 27'd81000000)   // ~3.0s @ 27 MHz
+`endif
                 esp_boot_ok <= 1;
             else
                 esp_boot_cnt <= esp_boot_cnt + 1'b1;

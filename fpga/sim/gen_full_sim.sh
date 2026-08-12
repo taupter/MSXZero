@@ -29,19 +29,25 @@ done < build.tcl
 VLOG_V="$VLOG_V src/lattice/clocks_ecp5.v src/lattice/bufg_ecp5.v gen/sv2v_out.v"
 RD=""; for f in gen/vhdl/*.il; do RD="$RD read_rtlil $f;"; done
 
+# EXTRA_DEFINES lets the caller add sim shortcuts, e.g.:
+#   EXTRA_DEFINES="-DSIM_FAST_BOOT -DSIM_FAST_INIT" ./sim/gen_full_sim.sh
+# (SIM_FAST_BOOT shortens the reset ramp + the ~3s ESP hold; SIM_FAST_INIT shortens SDRAM init.)
 yosys -q -p "
   $RD
-  read_verilog -sv -DECP5 $VLOG_V;
-  hierarchy -top top; flatten; proc; opt_clean;
+  read_verilog -sv -DECP5 ${EXTRA_DEFINES:-} $VLOG_V;
+  hierarchy -top top; flatten; proc;
+  memory_collect; setundef -init -zero;
+  opt_clean;
   write_verilog -noattr $OUT
 " || { echo "yosys failed"; exit 1; }
 
 # iverilog can't take an inout port that write_verilog also emits as a driven `reg`.
 # Split each such driver: reg X -> reg X_r + `assign X = X_r;`, and `X <= ` -> `X_r <= `.
+# (setundef -init adds `= <val>` to the reg decls, so match both forms.)
 perl -0pi -e '
-  s/  reg \[15:0\] IO_sdram_dq;/  reg [15:0] IO_sdram_dq_r;\n  assign IO_sdram_dq = IO_sdram_dq_r;/;
+  s/  reg \[15:0\] IO_sdram_dq(\s*=\s*16.h0000)?;/  reg [15:0] IO_sdram_dq_r$1;\n  assign IO_sdram_dq = IO_sdram_dq_r;/;
   s/    IO_sdram_dq <= /    IO_sdram_dq_r <= /g;
-  s/  reg mspi_mosi = 1.h0;/  reg mspi_mosi_r = 1'"'"'h0;\n  assign mspi_mosi = mspi_mosi_r;/;
+  s/  reg mspi_mosi(\s*=\s*1.h0)?;/  reg mspi_mosi_r$1;\n  assign mspi_mosi = mspi_mosi_r;/;
   s/ mspi_mosi <= / mspi_mosi_r <= /g;
 ' "$OUT"
 
