@@ -7,7 +7,11 @@ full synthesis, and on-hardware bring-up are still to do. See progress at the bo
 A fork of [Papipapito/MSXnano](https://github.com/Papipapito/MSXnano), being ported from the
 **Tang Nano 20K (Gowin)** to the **IcePi Zero (ECP5, 45F)** on the MiSTle **icepi_carrier**.
 
-## Progress (by stage)
+## Progress
+
+### Table 1 — a first working fork (boot MSX2+ on the IcePi Zero)
+
+These are the items needed to get a real MSX2+ running on hardware. This is the goal.
 
 | Stage | Status | Done |
 |---|---|---|
@@ -18,12 +22,24 @@ A fork of [Papipapito/MSXnano](https://github.com/Papipapito/MSXnano), being por
 | Constraints (`icepi.lpf`) | mapped; flash `USRMCLK` pending | 90% |
 | Gowin-primitive cleanup (BUFG, file list) | done | 85% |
 | Full synthesis (compile the whole design) | **done** — the whole core maps to ECP5 primitives with the open-source flow | 100% |
-| SDRAM controller (16-bit) | design decided: **narrow memory.v's proven MSX interleaving to 16-bit** (not wrap NanoMig's generic 2-port controller); IcePi geometry confirmed from NanoMig (13-row/9-col/16-bit). Geometry fix + memtest sim next. See `fpga/SDRAM_PORT.md` | ~35% |
-| Fit on the 45F (nextpnr place & route) | **fits + routes + packs to a .bit**: 78% logic (34360/43848 LUT4), 29% FF, 16% BRAM (18/108), 12% DSP (9/72), 1 PLL. ~22% LUT headroom + free BRAM/DSP for OPL4/V9968. `clk_54m` (Z80) timing not yet closed (~30–36 vs 53.85 MHz) | 90% |
-| Bitstream (ecppack) | **done** — full flow RTL→synth→P&R→`msx_ecp5.bit` (~683 KB) on the open-source toolchain | 100% |
+| Fit on the 45F (nextpnr place & route) | **fits + routes + packs to a .bit**: 78% logic (34360/43848 LUT4), 29% FF, 16% BRAM (18/108), 12% DSP (9/72), 1 PLL | 90% |
+| Bitstream (ecppack) | **done** — full flow RTL→synth→P&R→`msx_ecp5.bit` (~683 KB) | 100% |
+| `clk_54m` (Z80) timing closure | routes but ~30–36 vs 53.85 MHz — abc9/multicycle/retiming | 20% |
+| SDRAM controller (16-bit) | design decided: **narrow memory.v's proven MSX interleaving to 16-bit** (not wrap NanoMig); IcePi geometry confirmed (13-row/9-col). Read-path + geometry fix + memtest sim next. `fpga/SDRAM_PORT.md` | ~35% |
 | On-hardware bring-up (HDMI / SDRAM / companion / DB9) | not started | 0% |
-| Extras (OPL4 MoonSound, etc.) | core vendored, not wired | 5% |
-| **Overall** | **synthesizes + fits the 45F (78% logic); SDRAM adapter + hardware bring-up ahead** | **~45%** |
+| **Beta 1 overall** | **synthesizes + fits the 45F; SDRAM + bring-up ahead** | **~45%** |
+
+### Table 2 — future features (after the fork boots)
+
+Post-Beta-1 additions. The 45F fit above leaves ~22% LUT headroom + lots of free BRAM/DSP,
+which is why the sample-based OPL4 is comfortable but the LUT-heavy V9968 is a coin-flip.
+
+| Feature | Status | Done |
+|---|---|---|
+| OPL4 / MoonSound (`YMF278B`) | core vendored (`fpga/opl4wave/`), not wired; needs ECP5 wave-ROM memory + an OPL3 FM core | 5% |
+| OPL4 "super hi-res" samples (interpolation option) | idea only — cheap on the 45F, keep as A/B toggle vs authentic | 0% |
+| V9968 (accurate V9958, HRA!) | evaluate — LUT-heavy, tight at 78% base; measure standalone first | 0% |
+| MSXimus cherry-picks (test_hdmi / test_sdram harnesses, board abstraction) | noted in PORT_PLAN | 0% |
 
 > "Written" is the easy part; the build-and-bring-up phase is where most of the remaining effort is.
 
