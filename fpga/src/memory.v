@@ -46,32 +46,17 @@ module memory_ctrl (
 	
     assign O_sdram_clk = clk_108m;
     assign O_sdram_cke = 1;
-    assign O_sdram_cs_n = SdrCmd[3];
-    assign O_sdram_ras_n = SdrCmd[2];
-    assign O_sdram_cas_n = SdrCmd[1];
-    assign O_sdram_wen_n = SdrCmd[0];
-
-`ifdef ECP5
-    assign O_sdram_dqm[1] = SdrUdq;
-    assign O_sdram_dqm[0] = SdrLdq;
-`else
-    assign O_sdram_dqm[3] = SdrHUdq;
-    assign O_sdram_dqm[2] = SdrHLdq;
-    assign O_sdram_dqm[1] = SdrUdq;
-    assign O_sdram_dqm[0] = SdrLdq;
-`endif
-    assign O_sdram_ba[1] = SdrBa[1];
-    assign O_sdram_ba[0] = SdrBa[0];
-
-    assign O_sdram_addr = SdrAdr;
-    assign IO_sdram_dq = SdrDat;
+    // SDRAM command/data/address pin drivers are declared below, AFTER the Sdr* regs,
+    // so the source reads declaration-before-use (required by strict sims like iverilog;
+    // synthesis-neutral for yosys/Gowin).
 
 
+    reg [7:0]  RamDbi;   // moved up: used in the clk_27m sequencer below (declaration-before-use)
     reg [22:0] sdram_addr;
     wire sdram_read;
     reg sdram_write;
     wire sdram_dout;
-    reg [2:0] sdram_seq;
+    reg [2:0] sdram_seq = 0;
     reg enable_sdram;
 
     always @ (posedge clk_27m) begin
@@ -124,10 +109,10 @@ module memory_ctrl (
         end
     end
 
-    reg [2:0] ff_sdr_seq;
+    reg [2:0] ff_sdr_seq = 0;
     reg [4:0]  RstSeq = 0;
     // SDRAM control signals
-    reg  [2:0] SdrSta;
+    reg  [2:0] SdrSta = 0;
     reg  [3:0] SdrCmd;
     reg  [1:0] SdrBa = 2'b00;
     reg  SdrUdq;
@@ -153,9 +138,27 @@ module memory_ctrl (
     localparam [3:0] SdrCmd_rd = 4'b0101;            //-- read
     localparam [3:0] SdrCmd_wr = 4'b0100;            //-- write
 
-    reg [7:0]  RamDbi;
-    reg [1:0] ff_mem_seq;
+    reg [1:0] ff_mem_seq = 0;
     reg [15:0] FreeCounter = 0;
+
+    // SDRAM pin drivers (moved here so Sdr* are declared first; synthesis-neutral).
+    assign O_sdram_cs_n  = SdrCmd[3];
+    assign O_sdram_ras_n = SdrCmd[2];
+    assign O_sdram_cas_n = SdrCmd[1];
+    assign O_sdram_wen_n = SdrCmd[0];
+`ifdef ECP5
+    assign O_sdram_dqm[1] = SdrUdq;
+    assign O_sdram_dqm[0] = SdrLdq;
+`else
+    assign O_sdram_dqm[3] = SdrHUdq;
+    assign O_sdram_dqm[2] = SdrHLdq;
+    assign O_sdram_dqm[1] = SdrUdq;
+    assign O_sdram_dqm[0] = SdrLdq;
+`endif
+    assign O_sdram_ba[1] = SdrBa[1];
+    assign O_sdram_ba[0] = SdrBa[0];
+    assign O_sdram_addr = SdrAdr;
+    assign IO_sdram_dq = SdrDat;
 
 //    ----------------------------------------------------------------
 //    -- SDRAM access
@@ -184,7 +187,7 @@ module memory_ctrl (
         end
     end
 
-    reg [19:0] FreeCounter2;
+    reg [19:0] FreeCounter2 = 0;
     always @ ( posedge clk_108m ) begin
         if ( RstSeq < 5'b01000 ) begin
             FreeCounter2 <= 0;
@@ -199,7 +202,11 @@ module memory_ctrl (
         if ( bus_reset_n == 0 ) begin
             RstSeq <= 0;
         end
+`ifdef SIM_FAST_INIT
+        if( ff_mem_seq == 2'b00 && FreeCounter[4:0] == 5'h1F && RstSeq != 5'b11111 ) begin
+`else
         if( ff_mem_seq == 2'b00 && FreeCounter[15:0] == 16'hFFFF && RstSeq != 5'b11111 ) begin
+`endif
             RstSeq <= RstSeq + 1;                                                   //-- 3ms (= 65536 / 21.48MHz)
         end
     end

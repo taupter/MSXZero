@@ -26,7 +26,7 @@ These are the items needed to get a real MSX2+ running on hardware. This is the 
 | Fit on the 45F (nextpnr place & route) | **fits + routes + packs to a .bit**: 78% logic (34360/43848 LUT4), 29% FF, 16% BRAM (18/108), 12% DSP (9/72), 1 PLL | 90% |
 | Bitstream (ecppack) | **done** — full flow RTL→synth→P&R→`msx_ecp5.bit` (~683 KB) | 100% |
 | `clk_54m` (Z80) timing closure | routes but ~30–36 vs 53.85 MHz — abc9/multicycle/retiming | 20% |
-| SDRAM controller (16-bit) | **narrow memory.v to 16-bit** (not wrap NanoMig). Read-path bug fixed (ECP5 reads `IO_sdram_dq`, not the Gowin-magic `SdrDat`); 13/9 geometry fix + memtest sim in progress (`fpga/sim/`). `fpga/SDRAM_PORT.md` | ~40% |
+| SDRAM controller (16-bit) | **narrow memory.v to 16-bit** (not wrap NanoMig). memtest sim built (`fpga/sim/`, iverilog 4-state): init runs, FSM issues cmds, **VDP-side accesses work**. Fixed read path (read `IO_sdram_dq`, not Gowin-magic `SdrDat`) + power-up X-init of FSM regs. Next: CPU access needs the VDP dot-clock cadence in the tb, then 13/9 geometry. `fpga/SDRAM_PORT.md`, `fpga/sim/README.md` | ~45% |
 | On-hardware bring-up (HDMI / SDRAM / companion / DB9) | not started | 0% |
 | **Beta 1 overall** | **synthesizes + fits the 45F; SDRAM + bring-up ahead** | **~45%** |
 

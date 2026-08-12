@@ -31,48 +31,44 @@ module sdram_model #(
     reg [DATA_BITS-1:0] mem [0:(1<<(ADDR_BITS+COL_BITS+2))-1];
     reg [ADDR_BITS-1:0] active_row [0:3];
 
-    // read pipeline for CAS latency
-    reg [DATA_BITS-1:0] rd_pipe [0:CAS_LATENCY];
-    reg [CAS_LATENCY:0] rd_valid;
+    // read pipeline: data appears on dq exactly CAS_LATENCY cycles after the READ command.
+    // Output is COMBINATIONAL from pipe[0] so the total latency is exactly CAS_LATENCY (a
+    // registered output would add one extra cycle).
+    reg [DATA_BITS-1:0] pipe [0:CAS_LATENCY];
+    reg [CAS_LATENCY:0] pvalid;
     integer i;
 
     function [31:0] lin_addr(input [1:0] b, input [ADDR_BITS-1:0] r, input [COL_BITS-1:0] c);
         lin_addr = (b << (ADDR_BITS+COL_BITS)) | (r << COL_BITS) | c;
     endfunction
 
-    reg [DATA_BITS-1:0] dq_out;
-    reg                 dq_oe;
-    assign dq = dq_oe ? dq_out : {DATA_BITS{1'bz}};
+    assign dq = pvalid[0] ? pipe[0] : {DATA_BITS{1'bz}};
 
     initial begin
-        dq_oe = 0; rd_valid = 0;
-        for (i=0;i<=CAS_LATENCY;i=i+1) rd_pipe[i] = 0;
+        pvalid = 0;
+        for (i=0;i<=CAS_LATENCY;i=i+1) pipe[i] = 0;
     end
 
     always @(posedge clk) begin
+        // shift the read pipeline toward the (combinational) output every cycle
+        for (i=0;i<CAS_LATENCY;i=i+1) begin
+            pipe[i]   <= pipe[i+1];
+            pvalid[i] <= pvalid[i+1];
+        end
+        pvalid[CAS_LATENCY] <= 1'b0;
         if (cke && !cs_n) begin
             case (cmd)
               CMD_ACT: active_row[ba] <= addr;
               CMD_WR: begin
-                  // addr[COL_BITS-1:0] = column; A10 (addr[10]) = auto-precharge (ignored here)
                   if (!dqm[0]) mem[lin_addr(ba,active_row[ba],addr[COL_BITS-1:0])][7:0]  <= dq[7:0];
                   if (!dqm[1]) mem[lin_addr(ba,active_row[ba],addr[COL_BITS-1:0])][15:8] <= dq[15:8];
               end
               CMD_RD: begin
-                  rd_pipe[CAS_LATENCY] <= mem[lin_addr(ba,active_row[ba],addr[COL_BITS-1:0])];
-                  rd_valid[CAS_LATENCY] <= 1'b1;
+                  pipe[CAS_LATENCY]   <= mem[lin_addr(ba,active_row[ba],addr[COL_BITS-1:0])];
+                  pvalid[CAS_LATENCY] <= 1'b1;
               end
               default: ;
             endcase
         end
-        // shift read pipeline toward output
-        for (i=0;i<CAS_LATENCY;i=i+1) begin
-            rd_pipe[i]  <= rd_pipe[i+1];
-            rd_valid[i] <= rd_valid[i+1];
-        end
-        rd_valid[CAS_LATENCY] <= (cke && !cs_n && cmd==CMD_RD);
-        // drive dq when read data reaches the output stage
-        dq_oe   <= rd_valid[0];
-        dq_out  <= rd_pipe[0];
     end
 endmodule
