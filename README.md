@@ -19,7 +19,8 @@ A fork of [Papipapito/MSXnano](https://github.com/Papipapito/MSXnano), being por
 | Gowin-primitive cleanup (BUFG, file list) | done | 85% |
 | Full synthesis (compile the whole design) | **done** — the whole core maps to ECP5 primitives with the open-source flow | 100% |
 | SDRAM controller (16-bit) | proven controller vendored (NanoMig — tested on this exact board, the hard part done); adapter to CPU/VDP + arbitration + memtest remain | ~30% |
-| Fit on the 45F (nextpnr place & route) | **confirmed it fits**: 78% logic (34360/43848 LUT4), 29% FF, 16% BRAM (18/108), 12% DSP (9/72), 1 PLL. ~22% LUT headroom + lots of free BRAM/DSP for OPL4/V9968 | 90% |
+| Fit on the 45F (nextpnr place & route) | **fits + routes + packs to a .bit**: 78% logic (34360/43848 LUT4), 29% FF, 16% BRAM (18/108), 12% DSP (9/72), 1 PLL. ~22% LUT headroom + free BRAM/DSP for OPL4/V9968. `clk_54m` (Z80) timing not yet closed (~30–36 vs 53.85 MHz) | 90% |
+| Bitstream (ecppack) | **done** — full flow RTL→synth→P&R→`msx_ecp5.bit` (~683 KB) on the open-source toolchain | 100% |
 | On-hardware bring-up (HDMI / SDRAM / companion / DB9) | not started | 0% |
 | Extras (OPL4 MoonSound, etc.) | core vendored, not wired | 5% |
 | **Overall** | **synthesizes + fits the 45F (78% logic); SDRAM adapter + hardware bring-up ahead** | **~45%** |
