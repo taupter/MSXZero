@@ -70,6 +70,9 @@ needs companion firmware, not new logic). These are Beta-1 bring-up items.
 Not possible on the IcePi Zero XL — these need a purpose-built board with the right connectors and
 analog stages. In every case the FPGA logic is present or cheap; the gap is physical.
 
+Track 2 is a long-term goal, not a near-term plan. This is a hobby project worked on in spare time
+around a busy schedule, so the dedicated board and the features on it may take a while.
+
 | Feature | Status | Done |
 |---|---|---|
 | Real cartridge slot | a physical MSX cartridge edge connector — needs board pins + 5 V level-shifting. The core already has the interface (`ex_bus_*`/pinfilter in top.v, tied off now); the dedicated board wires it to real bidirectional IO through level shifters | 0% |

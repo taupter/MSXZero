@@ -84,6 +84,8 @@ carrier) and USB keyboard/gamepads (RP2350 companion over SPI). Both provisioned
 
 ### Track 2 — dedicated MSX board (beyond the devboard)
 Logic is present or cheap in every case; the gap is the physical connectors / analog stage / level-shifting.
+This is a long-term goal, not a near-term plan — a spare-time hobby project around a busy schedule, so
+the dedicated board may take a while.
 - Real cartridge slot — physical MSX edge connector; the `ex_bus_*` interface is tied off on the IcePi,
   the dedicated board wires it to real bidirectional IO through level shifters.
 - RGB (SCART) video out — the authentic 15 kHz MSX picture. VDP already makes the RGB; needs a
