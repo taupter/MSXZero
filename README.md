@@ -215,9 +215,21 @@ video / memory test bitstreams). Roadmap: `PORT_PLAN.md`. SDRAM plan: `fpga/SDRA
 
 ## References & credits
 
-Based on Papipapito/MSXnano ← jabadiagm/MSXgoauldSD_tn20k. GPL-3.0 (`LICENSE`).
-Platform references (same IcePi hardware): NanoMig IcePi port, `cheyao/icepi-zero`.
-OPL4 core vendored from [Papipapito/MSXimus](https://github.com/Papipapito/MSXimus) (GPL-3.0).
-`jtopl` FM cores by jotego (GPL-3.0). Upstream README kept as `README.upstream.md`.
+### Hardware & platform — the MiSTle project
+MSXZero runs entirely on hardware and companion software from the
+[MiSTle project](https://github.com/MiSTle-Dev) (thanks to Till Harbaum and the MiSTle-Dev team):
+- **IcePi Zero XL** devboard + **icepi_carrier** — [MiSTle-Dev/Boards](https://github.com/MiSTle-Dev/Boards/tree/main/icepi_carrier)
+- **FPGA-Companion** — the RP2350/PICO2 firmware that provides USB keyboard/gamepads, SD and the
+  on-screen menu over SPI — [MiSTle-Dev/FPGA-Companion](https://github.com/MiSTle-Dev/FPGA-Companion)
+- **NanoMig** — a MiSTle core on the same carrier; its 16-bit SDRAM controller is the reference for
+  ours, and its top-level is our blueprint for the board-abstraction refactor — [MiSTle-Dev/NanoMig](https://github.com/MiSTle-Dev/NanoMig)
+
+MSXZero is not an official MiSTle core — it targets the same board and companion.
+
+### Core & sound
+Based on [Papipapito/MSXnano](https://github.com/Papipapito/MSXnano) ← jabadiagm/MSXgoauldSD_tn20k.
+GPL-3.0 (`LICENSE`). OPL4 core vendored from [Papipapito/MSXimus](https://github.com/Papipapito/MSXimus)
+(GPL-3.0). `jtopl` FM cores by jotego (GPL-3.0). ECP5 SDRAM/DVI reference:
+[`cheyao/icepi-zero`](https://github.com/cheyao/icepi-zero). Upstream README kept as `README.upstream.md`.
 
 Parts of this port were done with assistance from Claude (an AI coding assistant).
