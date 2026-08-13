@@ -19,3 +19,5 @@ sim/simframe
 sim/simboot
 sim/frame_status.txt
 sim/vram_dump.txt
+bringup/tb_sdram_test
+bringup/simframe
