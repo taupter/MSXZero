@@ -60,6 +60,7 @@ LUT-reduction levers below; abc9 on a stable Yosys plus de-duping the two HDMI e
 | OPL4 / MoonSound (`YMF278B`) | core vendored (`fpga/opl4wave/`), not wired; needs ECP5 wave-ROM memory + an OPL3 FM core | 5% |
 | OPL4 "super hi-res" samples (interpolation option) | idea only — cheap on the 45F, keep as an A/B toggle vs authentic | 0% |
 | V9968 (accurate V9958, HRA!) | evaluate — LUT-heavy, tight at 75% base (but see LUT-reduction below); measure standalone first | 0% |
+| turboR PCM (8-bit DAC) | the MSX turboR's 8-bit PCM sample-playback device — a small DAC channel into the existing audio mixer (HRA recently added it to OCM-PLD). Cheap logic, adds sample audio, plays over HDMI. Genuine low-hanging fruit | 0% |
 
 Already on the devboard (not future work): SD card (Nextor / MSX-DOS 2, 4-bit SD pinned in
 `icepi.lpf` + microSD on the carrier) and USB keyboard/gamepads (RP2350 FPGA-Companion over SPI —
@@ -79,6 +80,7 @@ around a busy schedule, so the dedicated board and the features on it may take a
 | RGB (SCART) video out | the authentic 15 kHz MSX picture — analog RGB + composite sync (240p/288p) to a SCART TV / PVM / OSSC, sharper than the HDMI upscale. The VDP already produces the digital RGB at native rate; needs a raw pre-scandouble 15 kHz tap + a CSync generator (modest logic) plus an analog output stage (video DAC + SCART/DIN connector) | 0% |
 | WiFi | the MSX core already has the WiFi modem plumbing (the `wifi_lite` entity + WiFi ROM region + a UART modem, a vendored MSXnano feature). Undecided is the radio hardware: the RP2350 has no built-in radio, so the options are an external module on a UART (an ESP, for example) or a WiFi-capable companion — not decided yet | 0% |
 | Analog audio out (line-out / MIDI) | the core already mixes PSG / SCC / OPLL to stereo 16-bit and plays it over HDMI (Track 1, works today). Analog line-out needs a PWM / sigma-delta DAC + RC filter + a jack (cheap), or an I2S codec. MIDI out needs a UART-style pin + a DIN connector | 0% |
+| Battery-backed RTC | the core already emulates the MSX RTC (RP-5C01), so software has a clock — but the FPGA has no persistent time source, so it resets each power-on. A battery-backed RTC chip (e.g. DS3231 + coin cell, I2C) seeds real wall-clock time at boot: authentic (like a real MSX2+), offline, cheap, small logic (I2C read → seed the emulated RTC). WiFi NTP is an alternative once WiFi exists | 0% |
 
 LUT-reduction backlog (the 75% is a toolchain story, not bloat). From the real build data
 (33166 LUT4, 18 BRAM, 0 distributed LUT-RAM, 9 DSP) the fit is a synthesis-mapping result — the
@@ -98,42 +100,22 @@ modules, and shared sub-entities like `ram` must not be re-defined); and several
 that Gowin tolerated were fixed (package shared-variables, a missing instance name, port-name
 case, `real`→integer math). See `fpga/build_ecp5.sh` and `BUILD_ECP5.md`.
 
-## What the core is
+## Features
 
-This is a complete MSX2+ home computer implemented in FPGA logic, plus two bonus consoles
-that share the same silicon. It is not an emulator running on a CPU — it is the actual hardware,
-recreated:
+A complete MSX2+ home computer in FPGA logic — the actual hardware recreated, not an emulator on a
+CPU — plus two bonus consoles that share the silicon. The MSX2+ core is inherited from MSXnano; this
+list is cross-checked against MSXnano's own feature list and confirmed present in this port:
 
-### Systems
-- MSX2+ — the main machine (Z80, V9958 video, full BIOS/sub-ROM).
-- ColecoVision and Sega SG-1000 — ride along for free (they reuse the Z80 / VDP / PSG).
-
-### CPU & memory
-- Z80 CPU (the T80 core) with the MSX clock-enable timing.
-- 512 KB mapper RAM + 128 KB VRAM, held in external SDRAM.
-- MegaRAM / MegaROM mappers (ASCII 8K/16K, Konami/SCC) for cartridge images.
-- Config flash + an RTC.
-
-### Video (V9958 VDP)
-- All MSX / MSX2 / MSX2+ screen modes, sprites, 19268-colour YJK modes, hardware scroll.
-- Output over HDMI (and the design also carries VGA-style timing).
-
-### Sound
-- PSG (AY-3-8910 / YM2149) — the classic MSX sound.
-- SCC / SCC-I — Konami wavetable (Gradius etc.).
-- OPLL (YM2413, MSX-Music FM) via the `jtopl` core.
-- OPL4 / MoonSound — the `YMF278B` core is vendored in (`fpga/opl4wave/`), not yet wired up.
-- Output: all sources are mixed to stereo 16-bit and embedded in the HDMI stream (HDMI audio), so
-  sound plays through the monitor/TV with no extra hardware. Analog line-out and MIDI are a
-  dedicated-board add (see Track 2).
-
-### Storage & I/O
-- SD card with the Nextor kernel (MSX-DOS 2 — boot disks, load ROM/DSK images).
-- FPGA Companion (RP2350 on the carrier, over SPI) — provides USB keyboard and gamepads
- and the on-screen menu.
-- Two DB9 joystick ports (via the carrier's 74LCX07 buffers) — read natively by the PSG,
- as on a real MSX (added in this port).
-- WiFi hooks (via the companion), MIDI, WS2812 status LED.
+- CPU: Z80 (T80) with authentic MSX timing (per-M1 wait states, ~100% of real-MSX speed) plus a Turbo mode (~4.13 MHz).
+- Video: V9958 VDP — all MSX / MSX2 / MSX2+ screen modes, sprites, 19268-colour YJK modes, hardware scroll — output over HDMI (ECP5 GPDI), 128 KB VRAM.
+- Sound: PSG (AY-3-8910 / YM2149), SCC / SCC-I, OPLL (YM2413, MSX-Music), mixed to stereo and carried in the HDMI audio.
+- Memory / cartridges: MSX2+ BIOS + sub-ROM, a 4 MB memory mapper and a 2 MB MegaRAM / MegaROM (ASCII8/16, Konami, Konami-SCC), with mapper auto-detection by ROM content (openMSX-style) and cartridge SRAM saves.
+- Storage: microSD with the Nextor kernel (MSX-DOS 2), plus a boot-menu file browser to launch `.ROM` / `.DSK` images.
+- Clock/config: MSX RTC and configuration saved to flash.
+- Input: USB keyboard, gamepads and mouse via the RP2350 FPGA-Companion (over SPI); two DB9 joystick ports read natively by the PSG.
+- Controls (OCM Switched-I/O): per-chip and master audio volume, CPU turbo/speed, 50/60 Hz region toggle, machine type.
+- WiFi: MSX UNAPI via an external ESP modem, with the WiFi BIOS ROM built into the ROM pack (needs an ESP radio — see Track 2).
+- Consoles: ColecoVision and Sega SG-1000 emulation (SN76489 sound), launched from the boot menu.
 
 ## Architecture
 
