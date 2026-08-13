@@ -1,14 +1,18 @@
-# MSXZero — an MSX2+ computer on the Lattice ECP5 (IcePi Zero 45F)
+# MSXZero — an MSX2+ computer for MiSTle (Lattice ECP5 / IcePi Zero 45F)
 
-**Status: work in progress — builds + boots in sim, not yet run on hardware.**
-The whole core **synthesizes, fits the 45F (75% logic), routes, packs a bitstream**, its **SDRAM
-is validated in simulation** (both ports, full 8 MB), and — the big one — the **whole machine boots
-in a full-design simulation and the Z80 executes C-BIOS**. So the design is validated *logically*;
-what remains is the physical **on-hardware bring-up** (`clk_54m` timing is a likely-fine multicycle
-item). See the progress tables below.
+Status: work in progress. The core builds and boots in simulation; it has not run on hardware yet.
+The whole design synthesizes, fits the 45F (75% logic), routes, and packs a bitstream. The SDRAM is
+validated in simulation on both ports (the full 8 MB), and the whole machine boots in a full-design
+simulation with the Z80 executing C-BIOS. The design is therefore validated logically; what remains
+is the physical bring-up on the board (the `clk_54m` timing is a multicycle path that should be fine).
+See the progress tables below.
 
-A fork of [Papipapito/MSXnano](https://github.com/Papipapito/MSXnano), being ported from the
-**Tang Nano 20K (Gowin)** to the **IcePi Zero (ECP5, 45F)** on the MiSTle **icepi_carrier**.
+MSXZero is a MiSTle core. MiSTle is the MiSTer-style ecosystem for small, cheap FPGA boards (Tang
+Nano, IcePi Zero) paired with a companion microcontroller that handles USB input, SD, and the
+on-screen menu. This project is a fork of [Papipapito/MSXnano](https://github.com/Papipapito/MSXnano),
+ported from the Tang Nano 20K (Gowin) to the IcePi Zero (ECP5, 45F) on the MiSTle icepi_carrier, with
+the RP2350 FPGA Companion providing keyboard, gamepads, SD and the menu over SPI — the same carrier
+and companion the other MiSTle cores (such as NanoMig) use.
 
 ## Progress
 
@@ -101,51 +105,54 @@ recreated:
 ### Storage & I/O
 - **SD card** with the **Nextor** kernel (MSX-DOS 2 — boot disks, load ROM/DSK images).
 - **FPGA Companion** (RP2350 on the carrier, over SPI) — provides **USB keyboard and gamepads**
-  and the on-screen menu.
+ and the on-screen menu.
 - **Two DB9 joystick ports** (via the carrier's 74LCX07 buffers) — read natively by the PSG,
-  as on a real MSX (added in this port).
+ as on a real MSX (added in this port).
 - WiFi hooks (via the companion), MIDI, WS2812 status LED.
 
 ## The ECP5 port (this fork)
 
-Goal: keep the MSX2+ core, swap the **Gowin platform layer** for **ECP5**. Every ECP5 change is
-behind `` `ifdef ECP5`` and lives in `fpga/src/lattice/`; the Gowin build stays intact.
-Target hardware: **IcePi Zero (ECP5-45F) + icepi_carrier** (the tested MiSTle board), RP2350 companion.
+The goal is to keep the MSX2+ core and swap the Gowin platform layer for ECP5. Every ECP5 change is
+behind `` `ifdef ECP5`` and lives in `fpga/src/lattice/`, so the original Gowin build stays intact.
+Target hardware is the MiSTle stack: an IcePi Zero (ECP5-45F) on the icepi_carrier with the RP2350
+FPGA Companion — the same board and companion NanoMig and the other MiSTle cores run on. Because the
+carrier is shared, aligning this port to the common MiSTle board abstraction (instead of the current
+inline `` `ifdef ECP5``) is a planned post-Beta-1 refactor; see `PORT_PLAN.md`.
 
 **Done — the core builds, fits, and boots in sim:**
 - **The whole core synthesizes, fits, and packs to a bitstream** on the open-source flow
-  (Yosys + ghdl + nextpnr-ecp5 → `ecppack`). On the **LFE5U-45F**: **75% logic** (33166/43848
-  LUT4), 29% flip-flops, 16% block RAM, 12% DSP, 1 PLL, 1 `USRMCLK` — the base MSX2+ fits with room
-  to spare (and that 75% is a toolchain number — see the LUT-reduction backlog above).
+ (Yosys + ghdl + nextpnr-ecp5 → `ecppack`). On the **LFE5U-45F**: **75% logic** (33166/43848
+ LUT4), 29% flip-flops, 16% block RAM, 12% DSP, 1 PLL, 1 `USRMCLK` — the base MSX2+ fits with room
+ to spare (and that 75% is a toolchain number — see the LUT-reduction backlog above).
 - **Boots in a full-design simulation** — the whole mixed-language MSX runs in iverilog and the Z80
-  **executes C-BIOS** from SDRAM (`fpga/sim/`); SDRAM memtest passes for both ports. Design validated logically.
+ **executes C-BIOS** from SDRAM (`fpga/sim/`); SDRAM memtest passes for both ports. Design validated logically.
 - **Flash boot + bring-up harnesses** — the flash clock routes through `USRMCLK` (boot-from-flash),
-  and `fpga/bringup/` has standalone HDMI-test-pattern + SDRAM-memtest bitstreams for staged board bring-up.
+ and `fpga/bringup/` has standalone HDMI-test-pattern + SDRAM-memtest bitstreams for staged board bring-up.
 - Clocks — `clocks_ecp5.v`: one `EHXPLLL` from the 50 MHz osc → 107.69 (sys) / 134.6 (TMDS) /
-  26.92 (pixel) / 53.85 MHz. (Exact 108 MHz isn't reachable from 50 MHz without an out-of-spec
-  2 MHz phase detector; the system runs 0.28% low — within HDMI tolerance, imperceptible for MSX.)
+ 26.92 (pixel) / 53.85 MHz. (Exact 108 MHz isn't reachable from 50 MHz without an out-of-spec
+ 2 MHz phase detector; the system runs 0.28% low — within HDMI tolerance, imperceptible for MSX.)
 - Video output — `serializer_ecp5.sv`: ECP5 `ODDRX1F` GPDI, replacing the Gowin `OSER10` + `ELVDS_OBUF`.
 - Constraints — `icepi.lpf`: clock, GPDI, 16-bit SDRAM, SD, flash, LEDs, buttons, companion SPI, DB9 joysticks.
 - DB9 joysticks read natively by the PSG (added in this port), plus the RP2350 companion over SPI.
 - **Mixed-language build** — the tricky part. The SystemVerilog HDMI encoder is pre-converted with
-  **sv2v** (yosys can't parse its unpacked-array ports / `real` params); each VHDL boundary entity is
-  elaborated with **ghdl** and flattened to RTLIL (ghdl's `-read` crashes on multiple VHDL modules);
-  LUTs are mapped with **classic abc** (abc9 hits a Yosys dev-build XAIGER bug — ruled out as a
-  design issue; see `fpga/docs/abc9_issue.md`). A dozen source nits Gowin silently tolerated are
-  fixed (package shared-variables, `real`→integer math, an async-load PSG envelope, a PSG tri-state
-  loop, a tri-stated clock net → proper gated clock, port-name case, a missing instance name).
-  See `fpga/build_ecp5.sh` + `BUILD_ECP5.md`.
+ **sv2v** (yosys can't parse its unpacked-array ports / `real` params); each VHDL boundary entity is
+ elaborated with **ghdl** and flattened to RTLIL (ghdl's `-read` crashes on multiple VHDL modules);
+ LUTs are mapped with **classic abc** (abc9 hits a Yosys dev-build XAIGER bug — ruled out as a
+ design issue; see `fpga/docs/abc9_issue.md`). A dozen source nits Gowin silently tolerated are
+ fixed (package shared-variables, `real`→integer math, an async-load PSG envelope, a PSG tri-state
+ loop, a tri-stated clock net → proper gated clock, port-name case, a missing instance name).
+ See `fpga/build_ecp5.sh` + `BUILD_ECP5.md`.
 
 **Remaining — on-hardware bring-up (no FPGA glue left):**
 - **The board is the last mile.** Nothing here is silicon-tested yet. Bring-up order (with the ready
-  harnesses): config → clocks/LEDs → **HDMI test pattern** → **SDRAM memtest** → companion/USB keyboard
-  → SD/Nextor → C-BIOS boot. See `fpga/BRINGUP.md`.
+ harnesses): config → clocks/LEDs → **HDMI test pattern** → **SDRAM memtest** → companion/USB keyboard
+ → SD/Nextor → C-BIOS boot. See `fpga/BRINGUP.md`.
 - **`clk_54m` (Z80) timing** — routes but runs ~24–36 vs the 53.85 MHz target. The worst path is the
-  **clock-enabled (multicycle)** T80 CPU, so it's very likely fine on hardware (the SDRAM-only harness
-  hits ~180 MHz on the same clock — the "failure" is the CPU path). Clean fixes are blocked by
-  open-source tool limits (nextpnr can't express multicycle; abc9 is a dev-build bug). HW-confirm pending.
+ **clock-enabled (multicycle)** T80 CPU, so it's very likely fine on hardware (the SDRAM-only harness
+ hits ~180 MHz on the same clock — the "failure" is the CPU path). Clean fixes are blocked by
+ open-source tool limits (nextpnr can't express multicycle; abc9 is a dev-build bug). HW-confirm pending.
 - **SDRAM phase tuning** — the 16-bit `memory.v` memtest passes in sim (both ports) and in the standalone
-  harness; the only board-specific step is tuning the read-capture clock phase. See `fpga/SDRAM_PORT.md`.
+ harness; the only board-specific step is tuning the read-capture clock phase. See `fpga/SDRAM_PORT.md`.
 - **LUT reduction** (optional, no HW needed) — abc9 on a stable Yosys + de-dup the dual HDMI encoder; see above.
 - **OPL4 / MoonSound** and other extras — see the "future features" table above and `PORT_PLAN.md`.
 

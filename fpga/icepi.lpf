@@ -5,53 +5,53 @@
 ## STATUS: STARTER / INCOMPLETE. Verified board resources are mapped below; items marked
 ## TODO still need pins (companion SPI to the RP2350, UART, WS2812, m0s, led[5]).
 ##
-## ⚠️ BLOCKER before this elaborates: MSXnano top.v declares a **32-bit** SDRAM
-##   (IO_sdram_dq[31:0], O_sdram_dqm[3:0]) but the IcePi Zero SDRAM is **16-bit**
-##   (dq[15:0], dqm[1:0]). Narrow top.v's SDRAM interface + controller to 16-bit (Step 4)
-##   or dq[16..31] will have no pins. The 16-bit map below matches the real board.
+## BLOCKER before this elaborates: MSXnano top.v declares a **32-bit** SDRAM
+## (IO_sdram_dq[31:0], O_sdram_dqm[3:0]) but the IcePi Zero SDRAM is **16-bit**
+## (dq[15:0], dqm[1:0]). Narrow top.v's SDRAM interface + controller to 16-bit (Step 4)
+## or dq[16..31] will have no pins. The 16-bit map below matches the real board.
 
 SYSCONFIG CONFIG_IOVOLTAGE=3.3 COMPRESS_CONFIG=ON MCCLK_FREQ=62 MASTER_SPI_PORT=DISABLE SLAVE_SPI_PORT=DISABLE SLAVE_PARALLEL_PORT=DISABLE;
 
 ## ---- Clock: 50 MHz oscillator (MSXnano's board-clock input port is ex_clk_27m) ----
 LOCATE COMP "ex_clk_27m" SITE "M1";
-IOBUF  PORT "ex_clk_27m" PULLMODE=NONE IO_TYPE=LVCMOS33;
+IOBUF PORT "ex_clk_27m" PULLMODE=NONE IO_TYPE=LVCMOS33;
 FREQUENCY PORT "ex_clk_27m" 50 MHZ;
 
-## ---- GPDI / HDMI  (data_p/n[0]=Blue [1]=Green [2]=Red, clk_p/n=Clock) ----
+## ---- GPDI / HDMI (data_p/n[0]=Blue [1]=Green [2]=Red, clk_p/n=Clock) ----
 LOCATE COMP "data_p[0]" SITE "R13"; LOCATE COMP "data_n[0]" SITE "T14";
 LOCATE COMP "data_p[1]" SITE "R15"; LOCATE COMP "data_n[1]" SITE "T15";
 LOCATE COMP "data_p[2]" SITE "P16"; LOCATE COMP "data_n[2]" SITE "R16";
-LOCATE COMP "clk_p"     SITE "R12"; LOCATE COMP "clk_n"     SITE "T13";
+LOCATE COMP "clk_p" SITE "R12"; LOCATE COMP "clk_n" SITE "T13";
 # serializer_ecp5.sv drives P and its inverse N explicitly (two ODDRX1F), so use plain
 # LVCMOS33 on both pins (pseudo-differential), NOT LVCMOS33D (which would auto-drive N).
 IOBUF PORT "data_p[0]" IO_TYPE=LVCMOS33 DRIVE=4; IOBUF PORT "data_n[0]" IO_TYPE=LVCMOS33 DRIVE=4;
 IOBUF PORT "data_p[1]" IO_TYPE=LVCMOS33 DRIVE=4; IOBUF PORT "data_n[1]" IO_TYPE=LVCMOS33 DRIVE=4;
 IOBUF PORT "data_p[2]" IO_TYPE=LVCMOS33 DRIVE=4; IOBUF PORT "data_n[2]" IO_TYPE=LVCMOS33 DRIVE=4;
-IOBUF PORT "clk_p"     IO_TYPE=LVCMOS33 DRIVE=4; IOBUF PORT "clk_n"     IO_TYPE=LVCMOS33 DRIVE=4;
+IOBUF PORT "clk_p" IO_TYPE=LVCMOS33 DRIVE=4; IOBUF PORT "clk_n" IO_TYPE=LVCMOS33 DRIVE=4;
 
 ## ---- SDRAM (IcePi = 16-bit; MSXnano top.v is 32-bit → adapt in Step 4) ----
-LOCATE COMP "O_sdram_clk"   SITE "A3";  LOCATE COMP "O_sdram_cke"   SITE "B4";
-LOCATE COMP "O_sdram_cs_n"  SITE "B12"; LOCATE COMP "O_sdram_cas_n" SITE "B13";
+LOCATE COMP "O_sdram_clk" SITE "A3"; LOCATE COMP "O_sdram_cke" SITE "B4";
+LOCATE COMP "O_sdram_cs_n" SITE "B12"; LOCATE COMP "O_sdram_cas_n" SITE "B13";
 LOCATE COMP "O_sdram_ras_n" SITE "A12"; LOCATE COMP "O_sdram_wen_n" SITE "A13";
 LOCATE COMP "O_sdram_ba[0]" SITE "A11"; LOCATE COMP "O_sdram_ba[1]" SITE "B11";
 LOCATE COMP "O_sdram_dqm[0]" SITE "B14"; LOCATE COMP "O_sdram_dqm[1]" SITE "B3";
 # addr: IcePi has 13 lines (0..12); MSXnano uses [10:0] — map the low 11, leave 11/12 for the 16-bit ctrl
 LOCATE COMP "O_sdram_addr[0]" SITE "B10"; LOCATE COMP "O_sdram_addr[1]" SITE "A9";
-LOCATE COMP "O_sdram_addr[2]" SITE "B9";  LOCATE COMP "O_sdram_addr[3]" SITE "A8";
-LOCATE COMP "O_sdram_addr[4]" SITE "B8";  LOCATE COMP "O_sdram_addr[5]" SITE "A7";
-LOCATE COMP "O_sdram_addr[6]" SITE "B7";  LOCATE COMP "O_sdram_addr[7]" SITE "A6";
-LOCATE COMP "O_sdram_addr[8]" SITE "B6";  LOCATE COMP "O_sdram_addr[9]" SITE "A5";
+LOCATE COMP "O_sdram_addr[2]" SITE "B9"; LOCATE COMP "O_sdram_addr[3]" SITE "A8";
+LOCATE COMP "O_sdram_addr[4]" SITE "B8"; LOCATE COMP "O_sdram_addr[5]" SITE "A7";
+LOCATE COMP "O_sdram_addr[6]" SITE "B7"; LOCATE COMP "O_sdram_addr[7]" SITE "A6";
+LOCATE COMP "O_sdram_addr[8]" SITE "B6"; LOCATE COMP "O_sdram_addr[9]" SITE "A5";
 LOCATE COMP "O_sdram_addr[10]" SITE "A10";
 LOCATE COMP "IO_sdram_dq[0]" SITE "B16"; LOCATE COMP "IO_sdram_dq[1]" SITE "C14";
 LOCATE COMP "IO_sdram_dq[2]" SITE "C16"; LOCATE COMP "IO_sdram_dq[3]" SITE "C15";
 LOCATE COMP "IO_sdram_dq[4]" SITE "D16"; LOCATE COMP "IO_sdram_dq[5]" SITE "A15";
 LOCATE COMP "IO_sdram_dq[6]" SITE "B15"; LOCATE COMP "IO_sdram_dq[7]" SITE "A14";
-LOCATE COMP "IO_sdram_dq[8]" SITE "A2";  LOCATE COMP "IO_sdram_dq[9]" SITE "B2";
+LOCATE COMP "IO_sdram_dq[8]" SITE "A2"; LOCATE COMP "IO_sdram_dq[9]" SITE "B2";
 LOCATE COMP "IO_sdram_dq[10]" SITE "E2"; LOCATE COMP "IO_sdram_dq[11]" SITE "D1";
 LOCATE COMP "IO_sdram_dq[12]" SITE "C2"; LOCATE COMP "IO_sdram_dq[13]" SITE "C1";
 LOCATE COMP "IO_sdram_dq[14]" SITE "C3"; LOCATE COMP "IO_sdram_dq[15]" SITE "B1";
 # (apply IO_TYPE=LVCMOS33 PULLMODE=NONE DRIVE=4 to all O_sdram_*/IO_sdram_dq — omitted for brevity;
-#  copy the IOBUF lines from nanomig.lpf, they match these net names 1:1)
+# copy the IOBUF lines from nanomig.lpf, they match these net names 1:1)
 
 ## ---- SD card ----
 LOCATE COMP "sd_sclk" SITE "P15"; LOCATE COMP "sd_cmd" SITE "N16";
@@ -59,36 +59,36 @@ LOCATE COMP "sd_dat0" SITE "P14"; LOCATE COMP "sd_dat1" SITE "R14";
 LOCATE COMP "sd_dat2" SITE "M15"; LOCATE COMP "sd_dat3" SITE "M14";
 
 ## ---- SPI config flash (mspi) ----
-LOCATE COMP "mspi_cs"   SITE "N8";
-LOCATE COMP "mspi_mosi" SITE "T8";   # flash DI
-LOCATE COMP "mspi_miso" SITE "T7";   # flash DO
+LOCATE COMP "mspi_cs" SITE "N8";
+LOCATE COMP "mspi_mosi" SITE "T8"; # flash DI
+LOCATE COMP "mspi_miso" SITE "T7"; # flash DO
 # mspi_sclk: ECP5 flash clock is the config MCLK — drive it via the USRMCLK primitive, NOT a pin.
 
 ## ---- LEDs / buttons ----
 LOCATE COMP "led[0]" SITE "E13"; LOCATE COMP "led[1]" SITE "D14"; LOCATE COMP "led[2]" SITE "E12";
 LOCATE COMP "led[3]" SITE "C13"; LOCATE COMP "led[4]" SITE "D13";
-LOCATE COMP "s1" SITE "C5";   # user button
-LOCATE COMP "s2" SITE "C4";   # reset button
+LOCATE COMP "s1" SITE "C5"; # user button
+LOCATE COMP "s2" SITE "C4"; # reset button
 
 ## ---- FPGA Companion (RP2350) SPI ----
 ## Maps to the carrier RP2350 SPI (SCK/CS/MOSI/MISO/IRQ) via the J3 connector.
 ## Pins from NanoMig's gpio[] assignment (top.sv) cross-referenced to nanomig.lpf.
-LOCATE COMP "spi_sclk" SITE "L1";   # gpio[24]  SCK  (MCU -> FPGA)
-LOCATE COMP "spi_csn"  SITE "N4";   # gpio[18]  CS   (MCU -> FPGA)
-LOCATE COMP "spi_dat"  SITE "J2";   # gpio[25]  MOSI (MCU -> FPGA)
-LOCATE COMP "spi_dir"  SITE "F2";   # gpio[21]  MISO (FPGA -> MCU)
-LOCATE COMP "spi_irqn" SITE "P2";   # gpio[22]  IRQ  (FPGA -> MCU)
+LOCATE COMP "spi_sclk" SITE "L1"; # gpio[24] SCK (MCU -> FPGA)
+LOCATE COMP "spi_csn" SITE "N4"; # gpio[18] CS (MCU -> FPGA)
+LOCATE COMP "spi_dat" SITE "J2"; # gpio[25] MOSI (MCU -> FPGA)
+LOCATE COMP "spi_dir" SITE "F2"; # gpio[21] MISO (FPGA -> MCU)
+LOCATE COMP "spi_irqn" SITE "P2"; # gpio[22] IRQ (FPGA -> MCU)
 
 ## ---- UART (IcePi FTDI) ----
-LOCATE COMP "uart_tx" SITE "K15";   # FPGA -> FTDI
-LOCATE COMP "uart_rx" SITE "K16";   # FTDI -> FPGA
+LOCATE COMP "uart_tx" SITE "K15"; # FPGA -> FTDI
+LOCATE COMP "uart_rx" SITE "K16"; # FTDI -> FPGA
 
 ## ---- WS2812 status LED (carrier) ----
 LOCATE COMP "ws2812_led" SITE "J3"; # gpio[12]
 
 ## ---- Notes / still optional ----
-# m0s[4:0]  : the Tang Nano M0S Dock — NOT present on the icepi_carrier (RP2350 uses the SPI above).
-#             Leave unconstrained/unused; keyboard + gamepads come over the companion SPI.
+# m0s[4:0] : the Tang Nano M0S Dock — NOT present on the icepi_carrier (RP2350 uses the SPI above).
+# Leave unconstrained/unused; keyboard + gamepads come over the companion SPI.
 ## ---- DB9 joysticks (carrier, via 74LCX07) -> joya/joyb ports (added under `ifdef ECP5) ----
 ## gpio[0..5] = port A, gpio[6..11] = port B. Read directly by the MSX PSG port A (as on a real MSX),
 ## OR'd with USB gamepads from the companion. Bit order = up,down,left,right,TrigA,TrigB (verify on HW).
@@ -98,4 +98,4 @@ LOCATE COMP "joyb[0]" SITE "F3"; LOCATE COMP "joyb[1]" SITE "G1"; LOCATE COMP "j
 LOCATE COMP "joyb[3]" SITE "J1"; LOCATE COMP "joyb[4]" SITE "L2"; LOCATE COMP "joyb[5]" SITE "G2";
 # (LVCMOS33 inputs; add PULLMODE=UP if a disconnected port should read idle)
 # usb_uart_tx : second/debug UART — assign a spare pin if needed (else leave unconstrained).
-# led[5]      : only 5 on-board LEDs mapped here; drop led[5] or route to a carrier LED via gpio[13..15].
+# led[5] : only 5 on-board LEDs mapped here; drop led[5] or route to a carrier LED via gpio[13..15].

@@ -6,8 +6,8 @@ SDRAM layer is 32-bit. IcePi Zero SDRAM is 16-bit → narrow the physical layer,
 
 ## DON'T TOUCH — the core-side contract (top.v + the whole MSX depend on it)
 ```
-ram_din[7:0], ram_req, ram_write, ram_addr[22:0], ram_dout[7:0], ram_busy   // CPU (8-bit)
-vram_din[7:0], vram_write, vram_addr[16:0], vram_dout[15:0]                  // VDP
+ram_din[7:0], ram_req, ram_write, ram_addr[22:0], ram_dout[7:0], ram_busy // CPU (8-bit)
+vram_din[7:0], vram_write, vram_addr[16:0], vram_dout[15:0] // VDP
 clk_27m, clk_108m, video_dhclk, video_dlclk, bus_reset_n, bus_rfsh_n
 ```
 MSXnano already duplicates the CPU byte on writes (`ram_din={cpu_dout,cpu_dout}` in top.v) —
@@ -16,8 +16,8 @@ same trick as ulx3s_msx, so the write path is already lane-agnostic.
 ## How it works today (32-bit)
 A 32-bit word = 4 bytes, addressed by `sdram_addr[1:0]` (memory.v ~L290):
 ```
-if (sdram_addr[1]==0) { SdrUdq<=~sdram_addr[0]; SdrLdq<=sdram_addr[0]; }   // low  16b half, bytes 0/1
-else                  { SdrHUdq<=...;           SdrHLdq<=...; }             // high 16b half, bytes 2/3
+if (sdram_addr[1]==0) { SdrUdq<=~sdram_addr[0]; SdrLdq<=sdram_addr[0]; } // low 16b half, bytes 0/1
+else { SdrHUdq<=...; SdrHLdq<=...; } // high 16b half, bytes 2/3
 ```
 `O_sdram_dqm[3:0] = {SdrHUdq,SdrHLdq,SdrUdq,SdrLdq}`, `IO_sdram_dq[31:0]`, `SdrDat[31:0]`.
 
@@ -26,19 +26,19 @@ A 16-bit word = 2 bytes, addressed by `sdram_addr[0]` alone. `sdram_addr[1]` sto
 byte-within-word selector and becomes the **lowest word-address (column) bit**.
 
 1. **Ports:** `IO_sdram_dq[31:0]→[15:0]`, `O_sdram_dqm[3:0]→[1:0]`, `O_sdram_addr[10:0]→[12:0]`
-   (IcePi SDRAM has 13 address lines; see icepi.lpf).
+ (IcePi SDRAM has 13 address lines; see icepi.lpf).
 2. **Datapath reg:** `SdrDat[31:0]→[15:0]`; drive `IO_sdram_dq[15:0]`.
 3. **DQM:** delete `SdrHUdq`/`SdrHLdq`; `O_sdram_dqm = {SdrUdq, SdrLdq}`.
 4. **Byte lane (L~290):** always `SdrUdq<=~sdram_addr[0]; SdrLdq<=sdram_addr[0];` (drop the
-   `sdram_addr[1]==0` branch entirely).
+ `sdram_addr[1]==0` branch entirely).
 5. **Word address:** the SDRAM now indexes **16-bit words = `sdram_addr[22:1]`** (was `[22:2]`).
-   Shift the row/column split up by one bit and widen `SdrAdr`/`O_sdram_addr` accordingly.
+ Shift the row/column split up by one bit and widen `SdrAdr`/`O_sdram_addr` accordingly.
 6. **Read return:**
-   - CPU: `ram_dout <= sdram_addr[0] ? SdrDat[15:8] : SdrDat[7:0];`
-   - VRAM: `vram_dout <= SdrDat[15:0];`  (a 16-bit read is now exactly one word — simpler)
+ - CPU: `ram_dout <= sdram_addr[0] ? SdrDat[15:8] : SdrDat[7:0];`
+ - VRAM: `vram_dout <= SdrDat[15:0];` (a 16-bit read is now exactly one word — simpler)
 7. **Init/hi-Z:** the `SdrDat<=32'hzzzz…`/`32'hffff…` lines become 16-bit.
 8. **SdrSize / mode-register:** set for the IcePi chip's geometry (rows/cols/CAS) — copy the
-   values from `cheyao/icepi-zero/gateware/sdram/memtest` mode-register setup.
+ values from `cheyao/icepi-zero/gateware/sdram/memtest` mode-register setup.
 
 ## IcePi SDRAM chip geometry (from cheyao's tested controller — use these exact params)
 - **16-bit data** (`sd_data[15:0]`), **13-bit mux address** (`sd_addr[12:0]`), **2 banks**.
@@ -58,8 +58,8 @@ lower diff but you inherit the 32-bit chip's address math; more error-prone.)
 
 ## Watch-outs
 - **Bandwidth halves** (2 bytes/access vs 4). MSX2+ (Z80 + V9958 VRAM) should be fine at 108 MHz —
-  NanoMig runs *Amiga* off the same 16-bit chip at 85 MHz — but verify the CPU/VRAM arbiter still
-  meets refresh + VDP deadlines.
+ NanoMig runs *Amiga* off the same 16-bit chip at 85 MHz — but verify the CPU/VRAM arbiter still
+ meets refresh + VDP deadlines.
 - **Verify first with cheyao's memtest** on the real board before wiring the core.
 - Tune the `clkoutp` 180° SDRAM phase (clk_108p_ecp5.v) for setup/hold once it runs.
 
@@ -74,24 +74,24 @@ lower diff but you inherit the 32-bit chip's address math; more error-prone.)
 
 Two ways to get 16-bit SDRAM on the IcePi:
 - **A. Wrap NanoMig's `sdram` controller** (`src/lattice/nanomig_sdram.sv`). Proven physical
-  layer, BUT it's a generic 2-port request/`sync` controller — adopting it means re-building the
-  MSX's CPU/VDP **dot-clock interleaving** (the core streams VRAM on `video_dhclk`/`video_dlclk`,
-  not on a request/ack handshake). High risk in the MSX-specific timing.
+ layer, BUT it's a generic 2-port request/`sync` controller — adopting it means re-building the
+ MSX's CPU/VDP **dot-clock interleaving** (the core streams VRAM on `video_dhclk`/`video_dlclk`,
+ not on a request/ack handshake). High risk in the MSX-specific timing.
 - **B. Narrow `memory.v`'s existing physical layer to 16-bit** (this file's plan). Keeps the
-  proven MSX interleaving + command FSM intact; only the data width, byte lane, and row/col/bank
-  packing change. **Chosen.** The SDRAM command protocol (tRCD, CAS-2, refresh, auto-precharge)
-  is the JEDEC standard both controllers already implement — only the *geometry* differs.
+ proven MSX interleaving + command FSM intact; only the data width, byte lane, and row/col/bank
+ packing change. **Chosen.** The SDRAM command protocol (tRCD, CAS-2, refresh, auto-precharge)
+ is the JEDEC standard both controllers already implement — only the *geometry* differs.
 
 NanoMig is still the value: it **confirms the IcePi's SDRAM geometry** so we don't have to guess.
 
 ## CONFIRMED IcePi geometry (from NanoMig, DATA_WIDTH=16, ADDR_BASE=0)
 ```
-16-bit data, 4 banks, 13-bit row, 9-bit col  (word address = byte_addr[.. :1])
-  COL (9) = word_addr[8:0]
-  RAS (13)= word_addr[21:9]
-  BA  (2) = word_addr[23:22]   (NanoMig uses bank 0 only; MSXnano separates CPU/VDP by bank)
-  A10 during CAS = auto-precharge
-  sd_dqm = byte strobe: addr[0] ? {1'b1, ds} : {ds, 1'b1}
+16-bit data, 4 banks, 13-bit row, 9-bit col (word address = byte_addr[.. :1])
+ COL (9) = word_addr[8:0]
+ RAS (13)= word_addr[21:9]
+ BA (2) = word_addr[23:22] (NanoMig uses bank 0 only; MSXnano separates CPU/VDP by bank)
+ A10 during CAS = auto-precharge
+ sd_dqm = byte strobe: addr[0] ? {1'b1, ds} : {ds, 1'b1}
 ```
 
 ## The 13/9 geometry change is NOT needed (resolved 2026-08)
@@ -113,17 +113,17 @@ the 13/9 rewrite was dropped.
 | byte lane | `SdrUdq=~addr[0]; SdrLdq=addr[0]` | keep |
 </details>
 
-## STATUS (2026-08): memtest PASSES in sim ✅
+## STATUS (2026-08): memtest PASSES in sim
 1. **Simulate — DONE.** `fpga/sim/` (iverilog 4-state; a behavioral 16-bit SDRAM model + a
-   testbench that drives the VDP dot-clock cadence). CPU write→read round-trips across byte lanes,
-   rows, and high bits (2 MB) with no aliasing; VRAM 8-bit write / 16-bit read works, separate
-   bank, no cross-interference. See `sim/README.md`. Two real bugs were found + fixed here:
-   - **Read path:** the ECP5 read must latch `IO_sdram_dq` (the bus), NOT `SdrDat` (our tri-stated
-     drive reg = Z). Gowin's inferred-SDRAM magic hid this. (So ignore the older `vram_dout <=
-     SdrDat[15:0]` note above — the code now reads `IO_sdram_dq`.)
-   - **Power-up X-init:** FSM regs needed explicit `= 0` (real FPGA powers up to 0; 4-state sim didn't).
-   - The geometry addresses the **full 8 MB** (bank+row+col, verified across banks 0/1/2 + VRAM
-     bank 3). The MSX can't address more, so the 13/9 rewrite is **not needed** (see section below).
+ testbench that drives the VDP dot-clock cadence). CPU write→read round-trips across byte lanes,
+ rows, and high bits (2 MB) with no aliasing; VRAM 8-bit write / 16-bit read works, separate
+ bank, no cross-interference. See `sim/README.md`. Two real bugs were found + fixed here:
+ - **Read path:** the ECP5 read must latch `IO_sdram_dq` (the bus), NOT `SdrDat` (our tri-stated
+ drive reg = Z). Gowin's inferred-SDRAM magic hid this. (So ignore the older `vram_dout <=
+ SdrDat[15:0]` note above — the code now reads `IO_sdram_dq`.)
+ - **Power-up X-init:** FSM regs needed explicit `= 0` (real FPGA powers up to 0; 4-state sim didn't).
+ - The geometry addresses the **full 8 MB** (bank+row+col, verified across banks 0/1/2 + VRAM
+ bank 3). The MSX can't address more, so the 13/9 rewrite is **not needed** (see section below).
 2. **Frame dump** (still TODO): boot BIOS in sim, dump VRAM → PNG; the MSX logo would confirm the
-   whole VDP↔SDRAM↔core path.
+ whole VDP↔SDRAM↔core path.
 3. **Hardware** (board-only): SDRAM read-capture phase / CPHASE tuning is the last step — see `BRINGUP.md` stage 4.

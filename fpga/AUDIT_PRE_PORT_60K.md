@@ -23,9 +23,9 @@ Confirmado contra `build.tcl`:
 - `fpga/msx_debug/msx1_debug.v`, `msx2p_debug.v`, `print.v`, `uart_tx.v` (duplicados)
 - `fpga/src/gowin/clk_108p_tmp.v` · `fpga/src/gowin_clkdiv/gowin_clkdiv_tmp.v` · `fpga/src/gowin_clkdiv2/gowin_clkdiv2_tmp.vhd`
 - `fpga/src/logo.v`
-- `fpga/tn_vdp_v3_v9958/src/SPI_MCP3202.v`, `pinfilter.v`, `lpf.vhd` (⚠️ este `lpf.vhd` NUNCA debe entrar al build: colisionaría con `src/ocm/lpf.vhd`, cuyas entidades LPF1/LPF2 usa `psg_filter.v` por binding cross-language)
+- `fpga/tn_vdp_v3_v9958/src/SPI_MCP3202.v`, `pinfilter.v`, `lpf.vhd` ( este `lpf.vhd` NUNCA debe entrar al build: colisionaría con `src/ocm/lpf.vhd`, cuyas entidades LPF1/LPF2 usa `psg_filter.v` por binding cross-language)
 - `fpga/tn_vdp_v3_v9958/src/gowin/clk_108p.v`, `clk_108p_tmp.v`, `clk_135_tmp.v`, `clk_135p_tmp.v`, `clk_81p_tmp.v`
-- ⚠️ `fpga/src/print.v` NO todavía: entra por `` `include `` desde `src/msx2p_debug.v` (build.tcl:50). Borrarlo en 2.2.
+- `fpga/src/print.v` NO todavía: entra por `` `include `` desde `src/msx2p_debug.v` (build.tcl:50). Borrarlo en 2.2.
 
 ### 2.2 Podar `build.tcl` — netlist idéntico en teoría (el sintetizador ya los barre); verificar con un build y diff del resource summary
 - Líneas 40-42: `msx_debug/timing_debug.v`, `pulse_min_max/pulse_max.v`, `pulse_min.v` (top.v:2757 documenta que se quitó en producción)
@@ -88,7 +88,7 @@ Todo esto lo poda o ignora ya el sintetizador; borrarlo solo cambia el fuente:
 **A2. Árbol de relojes**
 - Regenerar 4 IPs para GW5A: `CLK_108P` (rPLL→PLLA, verificar VCO 864MHz), `Gowin_CLKDIV` (÷4) y `Gowin_CLKDIV2` (÷2 — ¡generado para GW1NR-9!), `CLK_135` (TMDS ×5; lleva DYN_DA_EN="true" fantasma — pedir fase estática; valorar serdes nativo del GW5A para HDMI).
 - **Crítico**: hay cruces 27↔54 registro-a-registro SIN sincronizadores (`ppi_port_a` 1032-1040, `exp_slot*` 1071-1090, keyboard/joystick 486-501/860) seguros SOLO por la alineación de fase 108/54/27 del mismo árbol CLKDIV. Garantizarla en el PLLA nuevo o añadir sincronizadores.
-- Constantes absolutas a recalcular si cambia la base (el 60K lleva otro oscilador): ÷30→3.6MHz (225), ÷20+swallow 175/176→**5.369318MHz EXACTO turbo WSX** (899-935), `esp_boot_cnt` 3s (836), autofire (512-516), `counter_reset` (290), `rtc.v:66` constante LFSR del segundo (⚠️ es cuenta LFSR, recalcular con el generador de KdL, no restando), `wifi_lite.vhd:205` prescaler=31 para **859372 bps FIJOS del firmware ESP de ducasp** + timeout 25ms (243), divisores de `psg_filter.v`. Centralizar en localparams derivados de CLK_HZ.
+- Constantes absolutas a recalcular si cambia la base (el 60K lleva otro oscilador): ÷30→3.6MHz (225), ÷20+swallow 175/176→**5.369318MHz EXACTO turbo WSX** (899-935), `esp_boot_cnt` 3s (836), autofire (512-516), `counter_reset` (290), `rtc.v:66` constante LFSR del segundo ( es cuenta LFSR, recalcular con el generador de KdL, no restando), `wifi_lite.vhd:205` prescaler=31 para **859372 bps FIJOS del firmware ESP de ducasp** + timeout 25ms (243), divisores de `psg_filter.v`. Centralizar en localparams derivados de CLK_HZ.
 
 **A3. Constraints (fallan EN SILENCIO — candidato nº1 a rehacer, no a copiar)**
 - `Z80_goauld.sdc`: create_clock sobre la RED (no el puerto, origen del PR1014), generated clocks anclados a nombres GW2A (`clk_main/rpll_inst/CLKOUT`, `O_sdram_clk`), false_path con rutas de instancia. Un `get_pins` que no matchea no da error: pierde la constraint. **Tras el primer PnR en GW5A verificar en el log que cada constraint matchea >0 objetos.**
@@ -97,8 +97,8 @@ Todo esto lo poda o ignora ya el sintetizador; borrarlo solo cambia el fuente:
 
 **A4. Companion BL616**
 - Decidir topología primero: en el Console 60K el BL616 onboard es el debugger con pines TangCore (nand2mario; hay ports 60K funcionando: NESTang/TangCore de donde sacar pinout y firmware). ¿Sigue teniendo sentido el dock M0S externo (mitigación secure-boot)?
-  - Si NO: borrar `spi_ext`/mux (fpga_companion.v:47-59) → desaparece el TA1132.
-  - Si SÍ: PULL_MODE=UP en los 5 pines m0s[] OBLIGATORIO en el CST nuevo (hoy salva el latch sin-vuelta-atrás de spi_ext) + exigir N muestras a 0 antes de conmutar.
+ - Si NO: borrar `spi_ext`/mux (fpga_companion.v:47-59) → desaparece el TA1132.
+ - Si SÍ: PULL_MODE=UP en los 5 pines m0s[] OBLIGATORIO en el CST nuevo (hoy salva el latch sin-vuelta-atrás de spi_ext) + exigir N muestras a 0 antes de conmutar.
 - Limpiar `sys_ctrl.v` (restos del core Atari ST: CMD4 con ids de chipset/TOS, bloque rs232 CMD7 — origen de ~50 EX2565) **preservando CMD0/CMD5/CMD6 e int_out_n: son el teclado**. Higiene CDC de `spi_io_ss` (plausible #4).
 - Aclarar `joystick0_console` (top.v:2835 sin conectar): ¿resto de una iteración del #20 o pendiente de cablear? Decidir antes de portar código ambiguo.
 
@@ -112,7 +112,7 @@ Todo esto lo poda o ignora ya el sintetizador; borrarlo solo cambia el fuente:
 - **Audio (opcional, decisiones de producto)**: clamp del mixer (plausible #1); fidelidad SN76489 (taps LFSR 0^3 vs 0^1, reset LFSR on-write, periodo 0 — pero ANTES convertir `sn_wr` a strobe de 1 ciclo, top.v:1829; irónicamente el muerto `impulse.v` es justo ese detector); keypad Coleco `kp_code` (top.v:1858) pendiente conocido de validar en HW.
 
 ### C. Porta tal cual
-`megaram.v` (lógica) · `flash_rw.v` (tras fixes) · `ws2812.v` (solo re-ubicar pin; parámetros dependen de CLK_FRE) · bloque SD RTL · divisores fabric ÷30 y ÷20+swallow (mientras clk_108m sea 108 exactos) · `lpf.vhd` OCM (⚠️ documentar en `psg_filter.v` el binding cross-language lpf1/lpf2; nunca añadir el lpf.vhd de tn_vdp al build) · G80a, jtopl, core VDP (exonerado en la investigación R-Type) y demás IP upstream.
+`megaram.v` (lógica) · `flash_rw.v` (tras fixes) · `ws2812.v` (solo re-ubicar pin; parámetros dependen de CLK_FRE) · bloque SD RTL · divisores fabric ÷30 y ÷20+swallow (mientras clk_108m sea 108 exactos) · `lpf.vhd` OCM ( documentar en `psg_filter.v` el binding cross-language lpf1/lpf2; nunca añadir el lpf.vhd de tn_vdp al build) · G80a, jtopl, core VDP (exonerado en la investigación R-Type) y demás IP upstream.
 
 ---
 
