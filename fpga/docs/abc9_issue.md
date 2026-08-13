@@ -48,3 +48,10 @@ The only thing abc9 would buy is closing `clk_54m` timing. That path is the cloc
 (multicycle) T80 CPU, which very likely runs fine on hardware regardless (see the timing notes
 in the main README / `project-msxnano-f45` memory). So: revisit abc9 only if hardware shows a
 real CPU-domain timing problem.
+
+## Update (2026-08-13): the latest OSS CAD Suite nightly also crashes
+Tested the whole flow with a fresh OSS CAD Suite nightly (2026-08-13, Yosys 0.68+58, only ~10 commits
+past our 0.68+48) — swapping in just the newer yosys for the synth step. abc9 (`synth_ecp5 -abc9`)
+fails identically: "Visited AIG node more than once" in the XAIGER backend. So the fix is NOT in the
+latest nightly; a working abc9 needs a release from before the regression, or a future fixed one.
+Classic `abc -lut 4:7` remains the flow.
