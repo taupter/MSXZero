@@ -67,23 +67,29 @@ refactor a known-good design, not a moving target):
 Payoff: one core codebase targets multiple MiSTle boards (Tang Nano + IcePi + a future dedicated
 board), and the port becomes a proper upstream MiSTle citizen.
 
-## Future features (post-Beta-1 — see README "Table 2")
+## After Beta 1 — two tracks (see README "Table 2a / 2b")
+The project splits into two streams. **Track 1** is the devboard core anyone can run on an
+off-the-shelf IcePi Zero + icepi_carrier. **Track 2** is a purpose-built MSX board for the features
+the devboard can't physically provide.
+
+### Track 1 — devboard additions (fit the IcePi Zero)
 - **OPL4 / MoonSound** — core vendored in `fpga/opl4wave/`; needs ECP5 wave-ROM memory + an OPL3 FM core.
 - **OPL4 hi-res sample option** — interpolation/oversampling toggle vs authentic.
 - **V9968** (accurate V9958) — LUT-heavy, tight at 75% (see LUT-reduction backlog); measure standalone first.
-- **WiFi** — core hooks exist (`wifi_lite` + WiFi ROM + UART modem); needs an **ESP radio on a UART**
- (RP2350 has no built-in radio) + firmware bridge. Dedicated-board.
-- **RGB (SCART) video out** — the authentic 15 kHz MSX picture. VDP already makes the RGB; needs a
- **raw pre-scandouble 15 kHz tap + CSync generator** (modest logic) + an analog stage (video DAC + SCART).
- Dedicated-board (no RGB connector on the IcePi). Sharper on a CRT than the HDMI upscale.
-- **Real cartridge slot** — only on a dedicated board (the `ex_bus_*` interface is tied off on the IcePi).
 - **Turbo-R / R800** — a whole new (fast) CPU; big-ticket, same tight-fit category as V9968.
 
-**Already Beta-1 (not future):** SD card (Nextor/MSX-DOS 2 — 4-bit SD pinned + microSD on carrier) and
-USB keyboard/gamepads (RP2350 companion over SPI). Both provisioned; bring-up checklist items.
+Already on the devboard (not future work): SD card (Nextor/MSX-DOS 2 — 4-bit SD pinned + microSD on
+carrier) and USB keyboard/gamepads (RP2350 companion over SPI). Both provisioned; bring-up items.
 
-**Dedicated-board bucket:** WiFi radio, RGB/SCART output, real cartridge slot — logic present/cheap, but
-the IcePi lacks the connectors / analog stage / level-shifting. They land together on the future board.
+### Track 2 — dedicated MSX board (beyond the devboard)
+Logic is present or cheap in every case; the IcePi just lacks the connectors / analog stage / level-shifting.
+- **Real cartridge slot** — physical MSX edge connector; the `ex_bus_*` interface is tied off on the IcePi,
+  the dedicated board wires it to real bidirectional IO through level shifters.
+- **RGB (SCART) video out** — the authentic 15 kHz MSX picture. VDP already makes the RGB; needs a
+  raw pre-scandouble 15 kHz tap + CSync generator (modest logic) + an analog stage (video DAC + SCART).
+- **WiFi** — the core has the modem plumbing (`wifi_lite` + WiFi ROM + UART modem). The radio hardware
+  is **not decided**: options are an external module on a UART (an ESP, for example) or a WiFi-capable
+  companion. TBD.
 
 ## LUT-reduction backlog (75% is a toolchain story, not bloat)
 From the real build data (nextpnr util: 33166 LUT4, 18 BRAM, **0 distributed LUT-RAM**, 9 DSP), ranked

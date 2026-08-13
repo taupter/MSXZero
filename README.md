@@ -38,25 +38,44 @@ These are the items needed to get a real MSX2+ running on hardware. This is the 
 | On-hardware bring-up (HDMI / SDRAM / companion / DB9) | not started (board pending) — procedure/risks/tuning prepped in `fpga/BRINGUP.md`, and the stage-3/4 harnesses above are ready to flash. Now "confirm + tune," not "debug from scratch" (design validated in sim) | 5% |
 | **Beta 1 overall** | **the entire pre-hardware side is done: builds + fits + bitstreams; SDRAM validated; boots + runs C-BIOS in sim; flash-boot (`USRMCLK`) closed; and stage-3/4 bring-up harnesses built + sim-validated. All that remains is the physical on-hardware bring-up — which is deliberately the last ~30% and can't be retired from a chair (real SDRAM phase, HDMI sync on a monitor, companion USB, `clk_54m` confirm, actual C-BIOS boot)** | **~70%** |
 
-### Table 2 — future features (after the fork boots)
+### After Beta 1 — two tracks
 
-Post-Beta-1 additions. The 45F fit above leaves ~25% LUT headroom + lots of free BRAM/DSP,
-which is why the sample-based OPL4 is comfortable but the LUT-heavy V9968 is a coin-flip. And that
-75% is itself a **toolchain** number, not bloat — see the LUT-reduction levers below the table
-(abc9 on a stable Yosys + de-duping the two HDMI encoders could reach ~60%, freeing more room).
+Once the fork boots, the project splits into two streams:
+
+- **Track 1 — the devboard core, for everyone.** The MSX2+ running on an off-the-shelf IcePi Zero
+  plus icepi_carrier, so anyone can build and flash it. Additions on this track are features that
+  fit the devboard as it is.
+- **Track 2 — a dedicated MSX board.** A purpose-built board for the things the devboard physically
+  can't provide — real connectors, analog output stages, 5 V level-shifting. The logic is largely
+  present or cheap; what's missing on the IcePi is the hardware around it.
+
+#### Table 2a — Track 1: devboard additions
+
+The 45F fit leaves ~25% LUT headroom plus free BRAM/DSP, so the sample-based OPL4 is comfortable
+while the LUT-heavy V9968 is a coin-flip. (That 75% is a toolchain number, not bloat — see the
+LUT-reduction levers below; abc9 on a stable Yosys plus de-duping the two HDMI encoders could reach
+~60% and free more room.)
 
 | Feature | Status | Done |
 |---|---|---|
 | OPL4 / MoonSound (`YMF278B`) | core vendored (`fpga/opl4wave/`), not wired; needs ECP5 wave-ROM memory + an OPL3 FM core | 5% |
-| OPL4 "super hi-res" samples (interpolation option) | idea only — cheap on the 45F, keep as A/B toggle vs authentic | 0% |
+| OPL4 "super hi-res" samples (interpolation option) | idea only — cheap on the 45F, keep as an A/B toggle vs authentic | 0% |
 | V9968 (accurate V9958, HRA!) | evaluate — LUT-heavy, tight at 75% base (but see LUT-reduction below); measure standalone first | 0% |
-| **WiFi** | the MSX core already has the WiFi plumbing (the `wifi_lite` entity + WiFi ROM region + a UART modem — a vendored MSXnano feature). Gap is *physical*: the RP2350 has **no built-in radio**, so it needs an external **ESP module on a UART** (as MSXnano assumes) + a firmware bridge. Cheap hardware, a **dedicated-board** item | 0% |
-| **RGB (SCART) video out** | the *authentic* MSX picture — analog **RGB + composite sync at 15 kHz** (240p/288p) to a SCART TV / PVM / OSSC, sharper than the HDMI upscale. The VDP already produces the digital RGB at native rate; needs a **raw pre-scandouble 15 kHz tap + a CSync generator** (modest logic) and an analog output stage (**video DAC + SCART/DIN connector**). The IcePi has no RGB connector → **dedicated-board** | 0% |
-| **Real cartridge slot** | a physical MSX cartridge edge connector — **not on the IcePi Zero** (no pins / 5V shifting), only when the project moves to a dedicated board. The core already has the interface (`ex_bus_*`/pinfilter in top.v, tied off now); the dedicated board wires it to real bidirectional IO through level shifters | 0% |
 
-> **Not in this table (already Beta-1, provisioned both sides):** **SD card** (Nextor / MSX-DOS 2, 4-bit SD pinned in `icepi.lpf` + microSD on the carrier — mandatory, native FPGA logic) and **USB keyboard/gamepads** (via the RP2350 FPGA-Companion over SPI — needs companion firmware, not new logic). These are bring-up checklist items, not future features.
+Already on the devboard (not future work): SD card (Nextor / MSX-DOS 2, 4-bit SD pinned in
+`icepi.lpf` + microSD on the carrier) and USB keyboard/gamepads (RP2350 FPGA-Companion over SPI —
+needs companion firmware, not new logic). These are Beta-1 bring-up items.
 
-The **dedicated-board** items above (WiFi radio, RGB/SCART output, real cartridge slot) share a theme: the *logic* is largely present or cheap, but the **IcePi Zero lacks the connectors / analog stage / level-shifting** for them. They come together when the project moves off the IcePi to its own board.
+#### Table 2b — Track 2: dedicated MSX board
+
+Not possible on the IcePi Zero — these need a purpose-built board with the right connectors and
+analog stages. In every case the FPGA logic is present or cheap; the gap is physical.
+
+| Feature | Status | Done |
+|---|---|---|
+| Real cartridge slot | a physical MSX cartridge edge connector — needs board pins + 5 V level-shifting the IcePi lacks. The core already has the interface (`ex_bus_*`/pinfilter in top.v, tied off now); the dedicated board wires it to real bidirectional IO through level shifters | 0% |
+| RGB (SCART) video out | the authentic 15 kHz MSX picture — analog RGB + composite sync (240p/288p) to a SCART TV / PVM / OSSC, sharper than the HDMI upscale. The VDP already produces the digital RGB at native rate; needs a raw pre-scandouble 15 kHz tap + a CSync generator (modest logic) plus an analog output stage (video DAC + SCART/DIN connector) that the IcePi has no room for | 0% |
+| WiFi | the MSX core already has the WiFi modem plumbing (the `wifi_lite` entity + WiFi ROM region + a UART modem, a vendored MSXnano feature). Undecided is the radio hardware: the RP2350 has no built-in radio, so the options are an external module on a UART (an ESP, for example) or a WiFi-capable companion — not decided yet | 0% |
 
 **LUT-reduction backlog (the 75% is a toolchain story, not bloat).** From the real build data
 (33166 LUT4, 18 BRAM, **0 distributed LUT-RAM**, 9 DSP) the fit is a synthesis-mapping result — the
