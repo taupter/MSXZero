@@ -21,3 +21,7 @@ sim/frame_status.txt
 sim/vram_dump.txt
 bringup/tb_sdram_test
 bringup/simframe
+sim/goauld_cbios.*
+sim/menu_status.txt
+sim/menu_vram_dump.txt
+sim/simmenu

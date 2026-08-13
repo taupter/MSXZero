@@ -80,3 +80,16 @@ reaching the first VRAM write takes a lengthy sim run. `SIM_FAST_BOOT` skips the
 
 Note: `cbios_main.hex` / `cbios_sub.hex` are generated locally from the C-BIOS ROMs
 (`od -An -v -tx1 <rom> | tr -s ' ' '\n'`) and are gitignored (don't redistribute the binaries).
+
+## Menu boot (goauld C-BIOS pack)
+`build_goauld_cbios.sh` builds a copyright-free boot pack (the MSXnano boot MENU present): it swaps
+the copyrighted MSX2+ BIOS / sub-ROM / Kanji for C-BIOS + 0xFF filler, keeping the real Nextor, menu,
+WiFi ROM, logo and config, in the exact `src/rom/build.bat` layout. `tb_menu.v` pre-loads the whole
+pack into SDRAM at `0x700000` (BIOS `0x760000`, sub `0x768000`, MENU `0x76C000` — an auto-boot `AB`
+ROM, INIT `0x4760`), so every MSX slot is populated.
+
+Result: the full pack boots **identically to bare C-BIOS** — 100 ms, `bios_reads` climbing linearly,
+`vram_writes` = 0 (VRAM stays empty, no screen). So the early-init stall is **pack-independent** (not
+empty slots); the prime suspect is the **VDP vblank interrupt not reaching the Z80** in the flattened
+sim. The menu can't render in this sim without resolving that (a hard flattened-netlist debug, or the
+board). The pack itself is board-ready — flashing it should show the menu if the stall is a sim artifact.
