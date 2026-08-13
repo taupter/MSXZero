@@ -72,10 +72,10 @@ analog stages. In every case the FPGA logic is present or cheap; the gap is phys
 
 | Feature | Status | Done |
 |---|---|---|
-| Real cartridge slot | a physical MSX cartridge edge connector — needs board pins + 5 V level-shifting the IcePi lacks. The core already has the interface (`ex_bus_*`/pinfilter in top.v, tied off now); the dedicated board wires it to real bidirectional IO through level shifters | 0% |
-| RGB (SCART) video out | the authentic 15 kHz MSX picture — analog RGB + composite sync (240p/288p) to a SCART TV / PVM / OSSC, sharper than the HDMI upscale. The VDP already produces the digital RGB at native rate; needs a raw pre-scandouble 15 kHz tap + a CSync generator (modest logic) plus an analog output stage (video DAC + SCART/DIN connector) that the IcePi has no room for | 0% |
+| Real cartridge slot | a physical MSX cartridge edge connector — needs board pins + 5 V level-shifting. The core already has the interface (`ex_bus_*`/pinfilter in top.v, tied off now); the dedicated board wires it to real bidirectional IO through level shifters | 0% |
+| RGB (SCART) video out | the authentic 15 kHz MSX picture — analog RGB + composite sync (240p/288p) to a SCART TV / PVM / OSSC, sharper than the HDMI upscale. The VDP already produces the digital RGB at native rate; needs a raw pre-scandouble 15 kHz tap + a CSync generator (modest logic) plus an analog output stage (video DAC + SCART/DIN connector) | 0% |
 | WiFi | the MSX core already has the WiFi modem plumbing (the `wifi_lite` entity + WiFi ROM region + a UART modem, a vendored MSXnano feature). Undecided is the radio hardware: the RP2350 has no built-in radio, so the options are an external module on a UART (an ESP, for example) or a WiFi-capable companion — not decided yet | 0% |
-| Analog audio out (line-out / MIDI) | the core already mixes PSG / SCC / OPLL to stereo 16-bit and plays it over HDMI (Track 1, works today). Analog line-out needs a physical stage the icepi_carrier does not carry: a PWM / sigma-delta DAC + RC filter + a jack (cheap), or an I2S codec. MIDI out needs a UART-style pin + a DIN connector | 0% |
+| Analog audio out (line-out / MIDI) | the core already mixes PSG / SCC / OPLL to stereo 16-bit and plays it over HDMI (Track 1, works today). Analog line-out needs a PWM / sigma-delta DAC + RC filter + a jack (cheap), or an I2S codec. MIDI out needs a UART-style pin + a DIN connector | 0% |
 
 LUT-reduction backlog (the 75% is a toolchain story, not bloat). From the real build data
 (33166 LUT4, 18 BRAM, 0 distributed LUT-RAM, 9 DSP) the fit is a synthesis-mapping result — the
@@ -122,7 +122,7 @@ recreated:
 - OPL4 / MoonSound — the `YMF278B` core is vendored in (`fpga/opl4wave/`), not yet wired up.
 - Output: all sources are mixed to stereo 16-bit and embedded in the HDMI stream (HDMI audio), so
   sound plays through the monitor/TV with no extra hardware. Analog line-out and MIDI are a
-  dedicated-board add — the icepi_carrier carries no analog audio stage (see Track 2).
+  dedicated-board add (see Track 2).
 
 ### Storage & I/O
 - SD card with the Nextor kernel (MSX-DOS 2 — boot disks, load ROM/DSK images).

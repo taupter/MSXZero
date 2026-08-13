@@ -83,7 +83,7 @@ Already on the devboard (not future work): SD card (Nextor/MSX-DOS 2 — 4-bit S
 carrier) and USB keyboard/gamepads (RP2350 companion over SPI). Both provisioned; bring-up items.
 
 ### Track 2 — dedicated MSX board (beyond the devboard)
-Logic is present or cheap in every case; the IcePi just lacks the connectors / analog stage / level-shifting.
+Logic is present or cheap in every case; the gap is the physical connectors / analog stage / level-shifting.
 - Real cartridge slot — physical MSX edge connector; the `ex_bus_*` interface is tied off on the IcePi,
   the dedicated board wires it to real bidirectional IO through level shifters.
 - RGB (SCART) video out — the authentic 15 kHz MSX picture. VDP already makes the RGB; needs a
@@ -93,7 +93,7 @@ Logic is present or cheap in every case; the IcePi just lacks the connectors / a
   companion. TBD.
 - Analog audio out (line-out / MIDI) — the core mixes PSG/SCC/OPLL to stereo 16-bit and already plays
   it over HDMI (Track 1). Analog line-out needs a PWM/sigma-delta DAC + RC filter + jack (cheap) or an
-  I2S codec; the icepi_carrier carries no analog audio stage. MIDI out needs a UART pin + DIN.
+  I2S codec. MIDI out needs a UART pin + DIN.
 
 ## LUT-reduction backlog (75% is a toolchain story, not bloat)
 From the real build data (nextpnr util: 33166 LUT4, 18 BRAM, 0 distributed LUT-RAM, 9 DSP), ranked
