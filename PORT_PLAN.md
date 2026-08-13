@@ -9,6 +9,13 @@ open-source toolchain. Practice project. Detailed docs: `fpga/BUILD_ECP5.md` (bu
 Scope note: the fork also emulates ColecoVision + Sega SG-1000 (they reuse the Z80/VDP/PSG).
 Kept as-is — the port is purely the platform layer.
 
+## Open decision: project name (paused)
+"MSXZero" reads as "MSX zero" and collides with **MSX0** (Nishi's official MSX revival). A rename is
+likely wise, but not urgent for a private hobby WIP. Decide **before any public release or before
+finalizing the logo + menu branding** — until then, keep the rename cheap: do not commit an MSXZero
+logo and do not rebrand the menu (still "MSXnano"). If we keep "MSXZero", that's a conscious choice.
+Leading candidate to escape "zero": **Kaizr** (Kaiser sound), keeping the Ξ mark as a logo emblem.
+
 ## Target hardware
 IcePi Zero XL (ECP5, 45F) on the MiSTle icepi_carrier — the tested board. RP2350 on the
 carrier = FPGA Companion (keyboard/SD/OSD). 50 MHz osc on pin `M1`.
