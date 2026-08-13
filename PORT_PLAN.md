@@ -91,6 +91,9 @@ Logic is present or cheap in every case; the IcePi just lacks the connectors / a
 - WiFi — the core has the modem plumbing (`wifi_lite` + WiFi ROM + UART modem). The radio hardware
   is not decided: options are an external module on a UART (an ESP, for example) or a WiFi-capable
   companion. TBD.
+- Analog audio out (line-out / MIDI) — the core mixes PSG/SCC/OPLL to stereo 16-bit and already plays
+  it over HDMI (Track 1). Analog line-out needs a PWM/sigma-delta DAC + RC filter + jack (cheap) or an
+  I2S codec; the icepi_carrier has none (confirmed from its BOM). MIDI out needs a UART pin + DIN.
 
 ## LUT-reduction backlog (75% is a toolchain story, not bloat)
 From the real build data (nextpnr util: 33166 LUT4, 18 BRAM, 0 distributed LUT-RAM, 9 DSP), ranked
