@@ -110,6 +110,39 @@ recreated:
  as on a real MSX (added in this port).
 - WiFi hooks (via the companion), MIDI, WS2812 status LED.
 
+## Architecture
+
+The left column is the MSX machine itself (portable logic); the right column is the ECP5 platform
+layer the port swaps out per board (this is the split the MiSTle board-abstraction refactor formalises).
+The point worth stressing, which a naive block diagram gets wrong: the MSX's RAM and VRAM are not
+separate memories — both live in the single external SDRAM, serviced by `memory_ctrl`.
+
+```text
+MSXZero (top.v) — one MSX2+ machine on the ECP5
+
+  MSX2+ core  (platform-agnostic logic)       ECP5 platform  (src/lattice/, ifdef ECP5)
+  ------------------------------------        ----------------------------------------
+   Z80 (T80)                                   clocks       EHXPLLL PLL (50 -> 108/135/27/54)
+   V9958 VDP                                   video        GPDI/TMDS serializer -> HDMI
+   PSG / SCC/SCC-I / OPLL                       memory_ctrl  16-bit SDRAM controller
+   ROM/RAM mappers / Nextor                     storage      SD card (Nextor)
+   ColecoVision / SG-1000 (ride-along)          input        2x DB9 joysticks / companion SPI
+        |                                       config       boot flash via USRMCLK
+        |  CPU RAM 512K + VRAM 128K                  |
+        +---------------> memory_ctrl <-------------+     (RAM and VRAM both live in
+                              |                            the one external SDRAM)
+
+  --------------------------- physical board (MiSTle) ---------------------------
+   IcePi Zero (ECP5-45F)
+     |- external SDRAM   8 MB, 16-bit   (holds the MSX RAM + VRAM above)
+     |- HDMI            -> monitor
+     `- icepi_carrier
+          `- RP2350 FPGA Companion   (over SPI)
+               |- USB keyboard + gamepads
+               |- SD card
+               `- on-screen menu (OSD)
+```
+
 ## The ECP5 port (this fork)
 
 The goal is to keep the MSX2+ core and swap the Gowin platform layer for ECP5. Every ECP5 change is
