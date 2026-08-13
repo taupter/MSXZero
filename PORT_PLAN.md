@@ -14,7 +14,11 @@ Kept as-is — the port is purely the platform layer.
 likely wise, but not urgent for a private hobby WIP. Decide **before any public release or before
 finalizing the logo + menu branding** — until then, keep the rename cheap: do not commit an MSXZero
 logo and do not rebrand the menu (still "MSXnano"). If we keep "MSXZero", that's a conscious choice.
-Leading candidate to escape "zero": **Kaizr** (Kaiser sound), keeping the Ξ mark as a logo emblem.
+
+Leading candidate: **MSXHero** — escapes MSX0 cleanly, keeps "MSX" (discoverable), reads clearly, is a
+trivial logo change (Zero→Hero, same 4 letters, same layout), and carries a "zero to hero" story.
+Vetted: only a low-profile `MSXHeroes` GitHub repo (plural) + the classic Activision H.E.R.O. game —
+neither a blocker. (Earlier idea: Kaizr, a Kaiser sound, with the Ξ mark kept as a logo emblem.)
 
 ## Target hardware
 IcePi Zero XL (ECP5, 45F) on the MiSTle icepi_carrier — the tested board. RP2350 on the
