@@ -137,6 +137,8 @@ recreated:
 
 ## Architecture
 
+![MSXZero (top.v) architecture on the ECP5: the platform-agnostic MSX2+ core, the ECP5 platform layer, and the physical IcePi Zero XL board with the RP2350 companion](docs/architecture.jpg)
+
 The left column is the MSX machine itself (portable logic); the right column is the ECP5 platform
 layer the port swaps out per board (this is the split the MiSTle board-abstraction refactor formalises).
 The point worth stressing, which a naive block diagram gets wrong: the MSX's RAM and VRAM are not
