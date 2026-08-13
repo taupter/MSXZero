@@ -14,11 +14,19 @@ ported from the Tang Nano 20K (Gowin) to the IcePi Zero (ECP5, 45F) on the MiSTl
 the RP2350 FPGA Companion providing keyboard, gamepads, SD and the menu over SPI — the same carrier
 and companion the other MiSTle cores (such as NanoMig) use.
 
-## Progress
+## Roadmap
 
-### Table 1 — a first working fork (boot MSX2+ on the IcePi Zero)
+The project runs on two tracks:
 
-These are the items needed to get a real MSX2+ running on hardware. This is the goal.
+- **Track 1 — the devboard core, for everyone.** An MSX2+ that anyone can build and flash on an
+  off-the-shelf IcePi Zero + icepi_carrier. Its first milestone is booting the machine (Beta 1,
+  below); devboard-fit features come after.
+- **Track 2 — a dedicated MSX board.** A purpose-built board for the things the devboard physically
+  can't provide — a real cartridge slot, RGB/SCART output, a WiFi radio.
+
+### Track 1, Beta 1 — boot the MSX2+ on the devboard
+
+These are the items needed to get a real MSX2+ running on the IcePi Zero. This is the immediate goal.
 
 | Stage | Status | Done |
 |---|---|---|
@@ -38,19 +46,9 @@ These are the items needed to get a real MSX2+ running on hardware. This is the 
 | On-hardware bring-up (HDMI / SDRAM / companion / DB9) | not started (board pending) — procedure/risks/tuning prepped in `fpga/BRINGUP.md`, and the stage-3/4 harnesses above are ready to flash. Now "confirm + tune," not "debug from scratch" (design validated in sim) | 5% |
 | **Beta 1 overall** | **the entire pre-hardware side is done: builds + fits + bitstreams; SDRAM validated; boots + runs C-BIOS in sim; flash-boot (`USRMCLK`) closed; and stage-3/4 bring-up harnesses built + sim-validated. All that remains is the physical on-hardware bring-up — which is deliberately the last ~30% and can't be retired from a chair (real SDRAM phase, HDMI sync on a monitor, companion USB, `clk_54m` confirm, actual C-BIOS boot)** | **~70%** |
 
-### After Beta 1 — two tracks
+### Track 1 — devboard additions (after Beta 1)
 
-Once the fork boots, the project splits into two streams:
-
-- **Track 1 — the devboard core, for everyone.** The MSX2+ running on an off-the-shelf IcePi Zero
-  plus icepi_carrier, so anyone can build and flash it. Additions on this track are features that
-  fit the devboard as it is.
-- **Track 2 — a dedicated MSX board.** A purpose-built board for the things the devboard physically
-  can't provide — real connectors, analog output stages, 5 V level-shifting. The logic is largely
-  present or cheap; what's missing on the IcePi is the hardware around it.
-
-#### Table 2a — Track 1: devboard additions
-
+Once the machine boots, these are the features that fit the IcePi Zero as it is.
 The 45F fit leaves ~25% LUT headroom plus free BRAM/DSP, so the sample-based OPL4 is comfortable
 while the LUT-heavy V9968 is a coin-flip. (That 75% is a toolchain number, not bloat — see the
 LUT-reduction levers below; abc9 on a stable Yosys plus de-duping the two HDMI encoders could reach
@@ -66,7 +64,7 @@ Already on the devboard (not future work): SD card (Nextor / MSX-DOS 2, 4-bit SD
 `icepi.lpf` + microSD on the carrier) and USB keyboard/gamepads (RP2350 FPGA-Companion over SPI —
 needs companion firmware, not new logic). These are Beta-1 bring-up items.
 
-#### Table 2b — Track 2: dedicated MSX board
+### Track 2 — dedicated MSX board
 
 Not possible on the IcePi Zero — these need a purpose-built board with the right connectors and
 analog stages. In every case the FPGA logic is present or cheap; the gap is physical.

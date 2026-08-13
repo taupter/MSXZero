@@ -67,10 +67,10 @@ refactor a known-good design, not a moving target):
 Payoff: one core codebase targets multiple MiSTle boards (Tang Nano + IcePi + a future dedicated
 board), and the port becomes a proper upstream MiSTle citizen.
 
-## After Beta 1 — two tracks (see README "Table 2a / 2b")
+## After Beta 1 — two tracks (see README "Roadmap")
 The project splits into two streams. **Track 1** is the devboard core anyone can run on an
-off-the-shelf IcePi Zero + icepi_carrier. **Track 2** is a purpose-built MSX board for the features
-the devboard can't physically provide.
+off-the-shelf IcePi Zero + icepi_carrier (Beta 1 boots it; devboard-fit features follow).
+**Track 2** is a purpose-built MSX board for the features the devboard can't physically provide.
 
 ### Track 1 — devboard additions (fit the IcePi Zero)
 - **OPL4 / MoonSound** — core vendored in `fpga/opl4wave/`; needs ECP5 wave-ROM memory + an OPL3 FM core.
