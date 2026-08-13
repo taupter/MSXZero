@@ -32,7 +32,10 @@ structural in our design — it's a Yosys/abc9 (XAIGER) bug in this dev build.
  model a false set/reset→output combinational path.
 - Likely a dev-build regression. Matching upstream reports:
  - yosys #4168 — identical error with `synth_ice40 -abc9`; removing `-abc9` fixed it.
- - yosys #4291 — same error on ECP5, `scc` reports no loops, XAIGER fails; fixed in a later release.
+ - yosys #4291 — same error on ECP5, `scc` reports no loops, XAIGER fails. Still OPEN (2026-08-13,
+   label "pending-verification"), no fix merged, root cause not diagnosed by maintainers. The only
+   documented workaround is `-noabc9` (i.e. classic abc, what this build uses). #4168 (ice40, same
+   error) is likewise open. A minimal reproducer from our design could help move it forward.
  Our 0.68+48 is newer than that fix, but a dev branch can reintroduce a regression — the most
  likely explanation given every structural cause here is ruled out.
 
