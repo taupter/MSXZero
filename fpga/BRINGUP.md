@@ -92,8 +92,9 @@ BIOS + sub-ROM → MSX BASIC prompt; then SD/Nextor for disks. If stages 3–5 p
 won't boot, the prime suspects are (a) SDRAM phase (stage 4), and (b) the `clk_54m` (Z80)
 timing — it routes ~24–36 MHz vs the 53.85 MHz constraint. That path is the clock-enabled
 (multicycle) CPU and should be fine, but if you see random crashes/instability that clean SDRAM
-doesn't explain, that's the place to look (drop the CPU turbo, or revisit abc9 — see
-`docs/abc9_issue.md`).
+doesn't explain, that's the place to look (drop the CPU turbo). Note abc9 is already enabled
+as of 2026-08-19 and did not improve Fmax, so it is not a lever left to pull — see
+`docs/abc9_issue.md`.
 Pass: MSX BASIC prompt, then a disk boots from SD.
 
 ## Known risks / things to verify on HW (quick reference)
@@ -105,6 +106,7 @@ Pass: MSX BASIC prompt, then a disk boots from SD.
 | DB9 joystick bit order | directions/buttons swapped | ASSUMPTION in top.v — verify, swap if needed |
 | Flash config clock (USRMCLK) | won't boot from flash | stage 1 — done (mspi_sclk routes via USRMCLK) |
 | DB9 5V vs 3.3V | (per carrier 74LCX07 buffers — OK) | carrier handles level shifting |
+| SD + m0s output-enable polarity | SD dead / keyboard dead, but builds fine | NEW 2026-08-19: these pins were refactored to `_i`/`_o`/`_oe` with explicit `TRELLIS_IO` buffers in top.v (abc9 fix). An inverted `T(~..._oe)` is invisible to the toolchain and only fails on silicon. Suspect this first if SD or the companion misbehaves — `docs/abc9_issue.md` |
 
 ## Debug resources on the board
 - 5 LEDs — wire status/heartbeat (stage 0). Your primary no-monitor debug.

@@ -22,10 +22,7 @@ echo "   wrote bringup/gen/hdmi_test_sv2v.v ($(wc -l < bringup/gen/hdmi_test_sv2
 echo "== [1/3] synth_ecp5 (top=hdmi_test_top) =="
 yosys -q -p "
   read_verilog -sv -DECP5 src/lattice/clocks_ecp5.v bringup/gen/hdmi_test_sv2v.v;
-  synth_ecp5 -top hdmi_test_top -flatten -run :map_luts;
-  abc -lut 4:7;
-  clean;
-  synth_ecp5 -top hdmi_test_top -run map_cells:;
+  synth_ecp5 -top hdmi_test_top -flatten;
   write_json bringup/gen/hdmi_test.json;
   stat
 "

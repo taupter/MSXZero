@@ -11,10 +11,7 @@ mkdir -p bringup/gen
 echo "== [1/3] synth_ecp5 (top=sdram_test_top) =="
 yosys -q -p "
   read_verilog -DECP5 src/lattice/clocks_ecp5.v src/memory.v bringup/sdram_test_top.v;
-  synth_ecp5 -top sdram_test_top -flatten -run :map_luts;
-  abc -lut 4:7;
-  clean;
-  synth_ecp5 -top sdram_test_top -run map_cells:;
+  synth_ecp5 -top sdram_test_top -flatten;
   write_json bringup/gen/sdram_test.json;
   stat
 "

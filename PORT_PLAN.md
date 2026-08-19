@@ -4,7 +4,7 @@ Fork of `Papipapito/MSXnano` (MSX2+ for Tang Nano 20K / Gowin). Goal: keep the M
 (Z80, V9958, SCC/OPLL, Nextor) and swap the Gowin platform layer for ECP5, on the
 open-source toolchain. Practice project. Detailed docs: `fpga/BUILD_ECP5.md` (build),
 `fpga/SDRAM_PORT.md` (memory), `fpga/BRINGUP.md` (hardware), `fpga/sim/README.md` (memtest),
-`fpga/docs/abc9_issue.md` (a toolchain known-issue). Live progress tables are in the top `README.md`.
+`fpga/docs/abc9_issue.md` (resolved 2026-08-19). Live progress tables are in the top `README.md`.
 
 Scope note: the fork also emulates ColecoVision + Sega SG-1000 (they reuse the Z80/VDP/PSG).
 Kept as-is — the port is purely the platform layer.
@@ -30,19 +30,19 @@ carrier = FPGA Companion (keyboard/SD/OSD). 50 MHz osc on pin `M1`.
 | Clocks / PLL | `src/lattice/clocks_ecp5.v` — one `EHXPLLL`, 50 → 107.69/134.6/26.92/53.85 MHz |
 | Constraints | `icepi.lpf` (clk, GPDI, 16-bit SDRAM, SD, flash, LEDs, buttons, companion SPI, DB9) |
 | Video out | `serializer_ecp5.sv` — ECP5 `ODDRX1F` GPDI (replaces Gowin OSER10 + ELVDS_OBUF) |
-| Mixed-language build | sv2v (SV) + ghdl→RTLIL per-module flatten (VHDL) + classic abc → `build_ecp5.sh` |
+| Mixed-language build | sv2v (SV) + ghdl→RTLIL per-module flatten (VHDL) + abc9 → `build_ecp5.sh` |
 | Synthesis + fit + bitstream | 75% LUT on the 45F (+1 USRMCLK), routes, `msx_ecp5.bit` |
 | SDRAM (16-bit) | memtest passes in sim, both CPU + VRAM ports (narrowed `memory.v`, not NanoMig) |
 | Boot-in-sim (C-BIOS) | the whole MSX boots in iverilog and the Z80 executes C-BIOS from SDRAM (`tb_frame.v`). Frame render is the last mile |
 | `mspi_sclk` → `USRMCLK` | flash config clock routed through the ECP5 `USRMCLK` primitive (`1/1`) — can boot from flash |
-| `clk_54m` (Z80) timing | routes ~24–36 vs 53.85 MHz — multicycle CPU, likely OK on HW (abc9 blocked, see docs) |
+| `clk_54m` (Z80) timing | routes ~24–36 vs 53.85 MHz — multicycle CPU, likely OK on HW (abc9 now on; did not move Fmax) |
 | On-hardware bring-up | not started (board pending) — full procedure in `BRINGUP.md` |
 
 Key decisions made along the way:
 - SDRAM: narrow `memory.v`'s proven MSX CPU/VDP dot-clock interleaving to 16-bit — do NOT
  wrap NanoMig's generic controller (would mean rebuilding the MSX timing). NanoMig only confirms
  the IcePi geometry (13-row/9-col). See `SDRAM_PORT.md`.
-- LUT mapping: classic `abc` (abc9 hits a Yosys dev-build XAIGER bug; `docs/abc9_issue.md`).
+- LUT mapping: abc9 (default), re-enabled 2026-08-19 after fixing the inout ports; `docs/abc9_issue.md`.
 
 ## Next (no hardware needed)
 - Boot-in-sim — done: the whole MSX runs in iverilog (`gen_full_sim.sh` + `tb_frame.v`), and with
@@ -54,7 +54,7 @@ Key decisions made along the way:
 - Bring-up harnesses — done: `bringup/` has a standalone HDMI test-pattern (stage 3) and
  SDRAM memtest (stage 4), each building to its own bitstream; the SDRAM one is sim-validated
  ("SDRAM HARNESS: PASS"). They isolate the video + memory paths for fast board bring-up. See `BRINGUP.md`.
-- Next doable-now: the LUT-reduction backlog above (abc9 on a stable OSS CAD Suite + de-dup the
+- Next doable-now: the LUT-reduction backlog above (abc9 is done; de-dup the
  dual HDMI encoder) — measured before/after. Everything else waits for the board.
 
 ## Next (needs the board — see `BRINGUP.md`)
@@ -111,8 +111,9 @@ the dedicated board may take a while.
 ## LUT-reduction backlog (75% is a toolchain story, not bloat)
 From the real build data (nextpnr util: 33166 LUT4, 18 BRAM, 0 distributed LUT-RAM, 9 DSP), ranked
 by evidence — savings are without removing any MSX feature:
-1. abc9 on a stable OSS CAD Suite (~10–20%) — classic `abc -lut 4:7` maps looser than abc9; abc9 is
- blocked only by a Yosys dev-build XAIGER bug (`docs/abc9_issue.md`). Rebuild on a tagged release.
+1. abc9 — DONE 2026-08-19. The blocker was inout ports, not a toolchain regression; fixed with
+ explicit TRELLIS_IO buffers (`docs/abc9_issue.md`). Measured 34362 -> 32481 LUTs (-5.5%),
+ below the ~10–20% originally estimated.
 2. De-dup the dual HDMI encoder (~5–9%) — `v9958_top.v` instantiates TWO full `hdmi` encoders
  (`hdmi_ntsc` VIC=2 + `hdmi_pal` VIC=17) and muxes one out (`pal_mode ? tmds_pal : tmds_ntsc`). The
  encoder carries audio/data-island/BCH/TERC4 — collapse to one parameterized instance.
@@ -120,4 +121,4 @@ by evidence — savings are without removing any MSX feature:
 - Ruled out by data: RAM/flatten duplication — BRAM is sane and there is zero distributed LUT-RAM,
  so memories infer to block RAM correctly; the LUTs are genuine logic. Don't chase this.
 Target: 1+2 together ≈ 75% → ~60%. Why bigger than the TN20K: Gowin's proprietary synth + native
-primitives pack this RTL tighter than yosys + classic abc — a mapping story, plus the one real dup.
+primitives pack this RTL tighter than yosys + abc9 — a mapping story, plus the one real dup.

@@ -28,8 +28,10 @@ just throw at yosys. `build_ecp5.sh` does:
  `-read` crashes deriving >1 VHDL module, and flattening absorbs shared sub-entities like `ram`
  so nothing is re-defined. lpf1/lpf2 get `-gMSBI=11`.
 3. yosys synth_ecp5 — read the `.il` modules + the plain `.v` + the sv2v output, then
- `synth_ecp5 -flatten`. LUTs are mapped with classic `abc -lut 4:7`, not abc9 (abc9 hits a
- Yosys dev-build XAIGER bug on this design — see `docs/abc9_issue.md`). → `msx_ecp5.json`.
+ `synth_ecp5 -flatten`. LUTs are mapped with abc9 (the `synth_ecp5` default) as of 2026-08-19.
+ The old classic-`abc -lut 4:7` workaround is gone: the XAIGER crash was caused by `inout` ports,
+ fixed by splitting the SD/m0s pins and using explicit `TRELLIS_IO` buffers in `top.v` —
+ see `docs/abc9_issue.md`. → `msx_ecp5.json`.
 4. nextpnr-ecp5 — place & route for `--45k --package CABGA256`, `icepi.lpf`,
  `--lpf-allow-unconstrained` (unused m0s pins). → `msx_ecp5.config`.
 5. ecppack — pack the bitstream. → `msx_ecp5.bit`.

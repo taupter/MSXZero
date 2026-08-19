@@ -40,7 +40,7 @@ These are the items needed to get a real MSX2+ running on the IcePi Zero XL. Thi
 | Full synthesis (compile the whole design) | done — the whole core maps to ECP5 primitives with the open-source flow | 100% |
 | Fit on the 45F (nextpnr place & route) | fits + routes + packs to a .bit: 75% logic (33166/43848 LUT4), 29% FF, 16% BRAM (18/108), 12% DSP (9/72), 1 PLL, 1 `USRMCLK` | 90% |
 | Bitstream (ecppack) | done — full flow RTL→synth→P&R→`msx_ecp5.bit` (~700 KB) | 100% |
-| `clk_54m` (Z80) timing | routes at ~24–36 MHz (varies with placement). But the worst path is the clock-enabled T80 CPU (runs at 3.58/5.37 MHz — the FFs advance ~1 in 10–15 base cycles), so it's genuinely multicycle and the 53.85 MHz check is far stricter than the CPU actually needs → very likely fine on hardware. Open-source tools can't express multicycle (nextpnr) or map it tighter — abc9 is blocked by a Yosys dev-build XAIGER bug (ruled out tri-state, real loops, and all black boxes — a pure LUT/FF design still trips it; see `fpga/docs/abc9_issue.md`). Classic abc is used instead. HW-confirm pending | 70% |
+| `clk_54m` (Z80) timing | routes at ~24–36 MHz (varies with placement). But the worst path is the clock-enabled T80 CPU (runs at 3.58/5.37 MHz — the FFs advance ~1 in 10–15 base cycles), so it's genuinely multicycle and the 53.85 MHz check is far stricter than the CPU actually needs → very likely fine on hardware. nextpnr can't express multicycle. abc9 is now enabled (2026-08-19 — the XAIGER crash was `inout` ports, fixed with explicit `TRELLIS_IO` buffers; see `fpga/docs/abc9_issue.md`) but did not move Fmax: the ~24–36 MHz spread is placement noise, not mapping quality. HW-confirm pending | 70% |
 | SDRAM controller (16-bit) | narrow memory.v to 16-bit (not wrap NanoMig). memtest PASSES for BOTH ports in sim (`fpga/sim/`, iverilog 4-state): CPU RAM (byte lanes, rows, full 8 MB across all 4 banks, no aliasing) and VRAM (8-bit write / 16-bit read, bank 3, no cross-interference). Whole data path validated; the 13/9 geometry rewrite was found unnecessary. Remaining: on-HW SDRAM phase tuning (board-only). `fpga/SDRAM_PORT.md`, `fpga/sim/README.md` | ~75% |
 | Boot validation (full-design sim) | the whole MSX boots in iverilog and the Z80 executes C-BIOS from SDRAM (`fpga/sim/`) — validates the CPU + memory + BIOS path logically (80 K+ steady BIOS fetches). A drawn frame is not reachable in this sim: C-BIOS spins in early init (slot-detect / vblank-IRQ) before video, so VRAM stays empty — the real screen comes from hardware (bring-up) | 80% |
 | Bring-up harnesses | done — standalone HDMI test-pattern (stage 3) and SDRAM memtest (stage 4) bitstreams in `fpga/bringup/`, each reusing the real modules so video + memory can be proven independently on the board. The SDRAM one is sim-validated ("SDRAM HARNESS: PASS") and reports on the LEDs. See `fpga/BRINGUP.md` | 100% |
@@ -52,8 +52,8 @@ These are the items needed to get a real MSX2+ running on the IcePi Zero XL. Thi
 Once the machine boots, these are the features that fit the IcePi Zero XL as it is.
 The 45F fit leaves ~25% LUT headroom plus free BRAM/DSP, so the sample-based OPL4 is comfortable
 while the LUT-heavy V9968 is a coin-flip. (That 75% is a toolchain number, not bloat — see the
-LUT-reduction levers below; abc9 on a stable Yosys plus de-duping the two HDMI encoders could reach
-~60% and free more room.)
+LUT-reduction levers below; abc9 is now done (-5.5%), so de-duping the two HDMI encoders is the
+remaining lever.)
 
 | Feature | Status | Done |
 |---|---|---|
@@ -85,8 +85,8 @@ around a busy schedule, so the dedicated board and the features on it may take a
 LUT-reduction backlog (the 75% is a toolchain story, not bloat). From the real build data
 (33166 LUT4, 18 BRAM, 0 distributed LUT-RAM, 9 DSP) the fit is a synthesis-mapping result — the
 same RTL fits a Tang Nano 20K under Gowin's proprietary tools. Ranked levers, without removing any
-MSX feature: (1) run the build on a stable OSS CAD Suite so abc9 works (classic `abc -lut 4:7`
-maps looser; ~10–20%); (2) de-dup the dual HDMI encoder — `v9958_top.v` instantiates two full
+MSX feature: (1) DONE 2026-08-19 — abc9 enabled after fixing the `inout` ports; measured
+34362 -> 32481 LUTs (-5.5%, below the ~10–20% once estimated); (2) de-dup the dual HDMI encoder — `v9958_top.v` instantiates two full
 `hdmi` encoders (NTSC VIC=2 + PAL VIC=17) and muxes one out (~5–9%). Ruled out by the data: RAM/flatten
 duplication (BRAM is sane, zero distributed LUT-RAM). Target 1+2 ≈ 75% → ~60%. Details in `PORT_PLAN.md`.
 
@@ -153,7 +153,7 @@ Done — the core builds, fits, and boots in sim:
 - Mixed-language build — the tricky part. The SystemVerilog HDMI encoder is pre-converted with
  sv2v (yosys can't parse its unpacked-array ports / `real` params); each VHDL boundary entity is
  elaborated with ghdl and flattened to RTLIL (ghdl's `-read` crashes on multiple VHDL modules);
- LUTs are mapped with classic abc (abc9 hits a Yosys dev-build XAIGER bug — ruled out as a
+ LUTs are mapped with abc9 (re-enabled 2026-08-19 after fixing the inout ports — the XAIGER
  design issue; see `fpga/docs/abc9_issue.md`). A dozen source nits Gowin silently tolerated are
  fixed (package shared-variables, `real`→integer math, an async-load PSG envelope, a PSG tri-state
  loop, a tri-stated clock net → proper gated clock, port-name case, a missing instance name).
@@ -166,10 +166,10 @@ Remaining — on-hardware bring-up (no FPGA glue left):
 - `clk_54m` (Z80) timing — routes but runs ~24–36 vs the 53.85 MHz target. The worst path is the
  clock-enabled (multicycle) T80 CPU, so it's very likely fine on hardware (the SDRAM-only harness
  hits ~180 MHz on the same clock — the "failure" is the CPU path). Clean fixes are blocked by
- open-source tool limits (nextpnr can't express multicycle; abc9 is a dev-build bug). HW-confirm pending.
+ open-source tool limits (nextpnr cannot express multicycle; abc9 is enabled but did not move Fmax). HW-confirm pending.
 - SDRAM phase tuning — the 16-bit `memory.v` memtest passes in sim (both ports) and in the standalone
  harness; the only board-specific step is tuning the read-capture clock phase. See `fpga/SDRAM_PORT.md`.
-- LUT reduction (optional, no HW needed) — abc9 on a stable Yosys + de-dup the dual HDMI encoder; see above.
+- LUT reduction (optional, no HW needed) — abc9 DONE (-5.5%); de-dup the dual HDMI encoder remains; see above.
 - OPL4 / MoonSound and other extras — see the "future features" table above and `PORT_PLAN.md`.
 
 ## Building
