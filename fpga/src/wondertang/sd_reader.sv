@@ -22,8 +22,15 @@ module sd_reader # (
     input  wire         clk,
     // SDcard signals (connect to SDcard), this design do not use sddat1~sddat3.
     output wire         sdclk,
-    inout               sdcmd,
-    inout               sddat0,            // FPGA only read SDDAT signal but never drive it
+    // Split bidirectional SD pins into i/o/oe. The actual bidirectional buffer is
+    // instantiated in top.v (TRELLIS_IO on ECP5). abc9 cannot represent inout ports
+    // in XAIGER — see fpga/docs/abc9_issue.md and YosysHQ/yosys#4291.
+    input               sdcmd_i,
+    output              sdcmd_o,
+    output              sdcmd_oe,
+    input               sddat0_i,          // FPGA only read SDDAT signal but never drive it
+    output              sddat0_o,
+    output              sddat0_oe,
     // show card status
     output wire [ 3:0]  card_stat,         // show the sdcard initialize status
     output reg  [ 1:0]  card_type,         // 0=UNKNOWN    , 1=SDv1    , 2=SDv2  , 3=SDHCv2
@@ -131,7 +138,7 @@ sdcmd_ctrl u_sdcmd_ctrl (
     .rstn        ( rstn         ),
     .clk         ( clk          ),
     .sdclk       ( sdclk        ),
-    .sdcmdin     ( sdcmdoe ? 1'b1 : sdcmd        ),
+    .sdcmdin     ( sdcmdoe ? 1'b1 : sdcmd_i        ),
     .sdcmdout    ( sdcmdout     ),
     .sdcmdoe     ( sdcmdoe      ),
     .clkdiv      ( clkdiv       ),
@@ -149,8 +156,10 @@ sdcmd_ctrl u_sdcmd_ctrl (
 reg sddat0oe = 0;
 reg sddat0out;
 
-assign sdcmd = (sdcmdoe) ? sdcmdout : 1'bz;
-assign sddat0 = (sddat0oe) ? sddat0out : 1'bz;
+assign sdcmd_o   = sdcmdout;
+assign sdcmd_oe  = sdcmdoe;
+assign sddat0_o  = sddat0out;
+assign sddat0_oe = sddat0oe;
 
 
 task set_cmd;
@@ -351,7 +360,7 @@ always @ (posedge clk or negedge rstn)
             case(sddat_stat)
                 // reading
                 RWAIT   : begin
-                    if(~sddat0) begin           // start bit = 0
+                    if(~sddat0_i) begin           // start bit = 0
                         sddat_stat <= RDURING;
                         ridx   <= 0;
 
@@ -362,7 +371,7 @@ always @ (posedge clk or negedge rstn)
                     end
                 end
                 RDURING : begin
-                    outbyte[3'd7 - ridx[2:0]] <= sddat0;
+                    outbyte[3'd7 - ridx[2:0]] <= sddat0_i;
                   
                     if(ridx[2:0] == 3'd7) begin
                         outen  <= 1'b1;
@@ -410,7 +419,7 @@ always @ (posedge clk or negedge rstn)
                     end else if (ridx < 512*8+16+1+2) begin
                         sddat0oe <= 0;          // wait for crc status 2 cycles                   
                     end else begin
-                        if (!sddat0) begin      // wait for ack
+                        if (!sddat0_i) begin      // wait for ack
                             sddat_stat = WTAIL;
                             ridx <= 0;
                         end
@@ -427,13 +436,13 @@ always @ (posedge clk or negedge rstn)
                 end
                 WTAIL   : begin                 // busy wait
                     if (ridx < 3) begin
-                        crc_stat <= { crc_stat[1:0], sddat0 };
+                        crc_stat <= { crc_stat[1:0], sddat0_i };
                     end else begin
         
                         if (ridx == 4)
                             crc_error <= crc_stat != 3'b010;
 
-                        if (!sddat0) begin      // wait for ack
+                        if (!sddat0_i) begin      // wait for ack
                             sddat_stat = WBUSY;
                             ridx <= 0;
                         if(ridx > 13000000)      
@@ -443,7 +452,7 @@ always @ (posedge clk or negedge rstn)
                     ridx   <= ridx + 1;
                 end
                 WBUSY   :  begin
-                    if (sddat0) begin      // wait for ack
+                    if (sddat0_i) begin      // wait for ack
                         sddat_stat = WDONE;
                         ridx <= 0;
                     end

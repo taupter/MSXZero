@@ -3,7 +3,11 @@ module fpga_companion (
     input        reset,
 
     // interface to external FPGA companion
-    inout [4:0]	m0s,
+    // Split bidirectional m0s pins; the buffer itself is instantiated in top.v.
+    // abc9 cannot represent inout ports — see fpga/docs/abc9_issue.md.
+    input  [4:0] m0s_i,
+    output [4:0] m0s_o,
+    output [4:0] m0s_oe,
     // and internal
     input	spi_sclk,
     input	spi_csn,
@@ -30,7 +34,7 @@ wire [7:0] mcu_data_out;
 wire [7:0] sys_data_out;
 wire [7:0] hid_data_out;
 
-//assign m0s[4] = spi_intn;
+//assign m0s_i[4] = spi_intn;
 
 // -------------------------- M0S MCU interface -----------------------
 // intn and dout are outputs driven by the FPGA to the MCU
@@ -38,7 +42,9 @@ wire [7:0] hid_data_out;
 // onboard connection to on-board BL616
 
 assign spi_dir = spi_io_dout;
-assign m0s[4:0] = { spi_intn, 3'bzzz, spi_io_dout };
+// bit 4 = spi_intn (driven), bits 3:1 = inputs from the dock, bit 0 = spi_io_dout (driven)
+assign m0s_o  = { spi_intn, 3'b000, spi_io_dout };
+assign m0s_oe = 5'b10001;
 assign spi_irqn = spi_intn;
 
 // by default the internal SPI is being used. Once there is
@@ -54,16 +60,16 @@ always @(posedge clk) begin
         // is connected and the FPGA switches its inputs to the
         // m0s. Until then the inputs of the internal BL616 are
         // being used.
-        if(m0s[2] == 1'b0)
+        if(m0s_i[2] == 1'b0)
             spi_ext = 1'b1;
     end
 end
 
 // switch between internal SPI connected to the on-board bl616
 // or to the external one possibly connected to a M0S Dock
-wire spi_io_din = spi_ext?m0s[1]:spi_dat;
-wire spi_io_ss = spi_ext?m0s[2]:spi_csn;
-wire spi_io_clk = spi_ext?m0s[3]:spi_sclk;
+wire spi_io_din = spi_ext?m0s_i[1]:spi_dat;
+wire spi_io_ss = spi_ext?m0s_i[2]:spi_csn;
+wire spi_io_clk = spi_ext?m0s_i[3]:spi_sclk;
 
 mcu_spi mcu (
         .clk(clk),

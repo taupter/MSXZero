@@ -102,18 +102,16 @@ yosys -p "
   $RD
   read_verilog -sv -DECP5 ${EXTRA_DEFINES:-} $VLOG;
   hierarchy -top top;
-  synth_ecp5 -top top -flatten -run :map_luts;
-  abc -lut 4:7;
-  clean;
-  synth_ecp5 -top top -run map_cells: -json msx_ecp5.json
+  synth_ecp5 -top top -flatten -json msx_ecp5.json
 " 2>&1 | tee yosys.log
 # -flatten: needed so top-level constant straps (e.g. VDP FORCED_V_MODE tied to 1'b0)
 # propagate into the imported VHDL modules before dfflegalize, collapsing async-load
 # FFs ($aldff) into legal async-reset FFs ($adff).
-# Two-phase synth_ecp5 with a manual "abc -lut 4:7" between: workaround, not style.
-# synth_ecp5's map_luts stage runs abc9, which dies here with "Visited AIG node more
-# than once" in the XAIGER backend — and abc9 is on by default now. Still broken on
-# Yosys 0.68+86 (2026-08-19). https://github.com/YosysHQ/yosys/issues/4291
+# abc9 (the synth_ecp5 default) works again as of 2026-08-19: the XAIGER crash was
+# caused by inout ports, fixed by splitting the SD/m0s pins into _i/_o/_oe and putting
+# explicit TRELLIS_IO buffers in top.v. The old workaround (two-phase synth with a
+# manual "abc -lut 4:7") is gone — upstream is removing both classic abc and -noabc9,
+# see YosysHQ/yosys#6103. Background: fpga/docs/abc9_issue.md, YosysHQ/yosys#4291.
 [ "${PIPESTATUS[0]}" = 0 ] || { echo "YOSYS FAILED"; exit 1; }
 
 echo "== [4/4] nextpnr-ecp5 (45F, CABGA256) =="

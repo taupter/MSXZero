@@ -1,9 +1,12 @@
 # abc9 / XAIGER "Visited AIG node more than once" — investigation
 
-Status: open upstream (labelled `bug` + `ABC`). Worked around by using classic `abc -lut 4:7` in
-`build_ecp5.sh` (the design synthesizes/fits/routes/bitstreams fine). abc9 (better timing) is unavailable.
-WARNING: that workaround has an expiry date — upstream PR #6103 (merged 2026-08-19) removes classic
-`abc` mapping and the `-noabc9` option. Toolchain is pinned; see the 2026-08-19 update at the end.
+Status: RESOLVED on our side (2026-08-19). abc9 is back on — `build_ecp5.sh` uses plain
+`synth_ecp5` again and the classic `abc -lut 4:7` workaround is gone. Still open upstream
+(labelled `bug` + `ABC`), but it no longer affects us: the crash was caused by `inout` ports,
+and we no longer present any to abc9. See "The fix" at the end of this file.
+
+CAVEAT: verified in the toolchain only. No ECP5 hardware exists yet, so no bitstream from this
+design — abc9 or classic — has ever run on silicon. See the bring-up checklist at the end.
 
 ## The failure
 Yosys `synth_ecp5` with abc9 dies at the AIG export, before abc9 maps anything:
@@ -93,3 +96,39 @@ DO NOT update the toolchain casually — the next nightly may break build_ecp5.s
 modules. Carry `_i` / `_o` / `_oe` as separate signals and instantiate the actual bidirectional
 buffer only at top level. Unproven for our design, but it follows from the maintainer's diagnosis
 and is the only route that still works once classic abc is gone.
+
+## The fix (2026-08-19)
+abc9 does not choke on tri-state logic as such — it chokes on `inout` **ports**, because XAIGER
+has no way to represent a bidirectional port. Two things make it work:
+
+* a submodule must not take an `inout`; it exposes `_i` / `_o` / `_oe` instead;
+* the top-level `inout` stays (so `icepi.lpf` is untouched) but is driven by an **explicit**
+  `TRELLIS_IO #(.DIR("BIDIR"))` buffer instead of an implicit `assign pin = oe ? d : 1'bz`.
+
+Validated on minimal testcases before touching the design: bare `inout` FAILS; split ports PASS;
+`inout` + explicit TRELLIS_IO PASS; submodule split + top TRELLIS_IO PASS.
+
+Changed (3 files, ~87 lines):
+* `src/wondertang/sd_reader.sv` — `sdcmd`/`sddat0` -> `_i`/`_o`/`_oe`
+* `src/usb/fpga_companion.v` — `m0s[4:0]` -> `_i`/`_o`/`_oe` (oe = 5'b10001: bit4 intn, bit0 dout)
+* `top.v` — 7 TRELLIS_IO buffers (2 SD + 5 m0s), guarded by `ifdef ECP5` with a plain `1'bz`
+  fallback so the Gowin build is unaffected; `mspi_miso`/`mspi_mosi` given real directions
+  (input/output) since the flash module only ever used them one-way.
+
+NOT changed, and did not need to be:
+* `IO_sdram_dq` — its tri-state sits in a clocked register (`SdrDat <= 32'bzzz...`), which yosys
+  handles fine. Do not "fix" this; it was tested and is not the problem.
+* `src/lattice/nanomig_sdram.sv` — dead code, never instantiated.
+
+Result: `synth_ecp5` with abc9 completes; full flow bitstreams at 681,821 bytes.
+LUTs 34362 -> 32481 (-5.5%). `clk_54m` Fmax is unchanged within run-to-run placement noise
+(observed 27.9-35.2 MHz across builds) and still does NOT meet 53.85 MHz — abc9 did not fix that.
+
+## Bring-up checklist (when ECP5 hardware exists)
+The refactor changed how pins are DRIVEN. It compiles and routes, but an inverted output-enable
+would look identical in the toolchain and only fail on the board. On first hardware:
+1. SD card init + sector read (exercises sdcmd/sddat0 oe polarity, `T(~oe)` on TRELLIS_IO).
+2. SD card write.
+3. USB keyboard via the BL616 (exercises m0s: bit 4 intn out, bit 0 dout out, bits 3:1 in).
+4. If a M0S Dock is attached, check the spi_ext switchover still triggers (reads m0s_i[2] low).
+If any of these misbehave, suspect the `T(~..._oe)` polarity in top.v first.

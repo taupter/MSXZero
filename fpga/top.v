@@ -48,8 +48,11 @@ module top
 `ifndef ECP5
     output wire mspi_sclk,   // Gowin: a normal user pin
 `endif
-    inout wire mspi_miso,
-    inout wire mspi_mosi,
+    // Declared inout historically, but the flash module uses them strictly one-way
+    // (input MISO / output MOSI), so give them real directions — one less inout for
+    // abc9 to choke on. See fpga/docs/abc9_issue.md.
+    input  wire mspi_miso,
+    output wire mspi_mosi,
 
     // MicroSD
     output wire sd_sclk,
@@ -2586,6 +2589,26 @@ memory_ctrl mem1 (
         .q_b(sd_inbyte_w)
     );
     
+    // --- SD bidirectional pins -------------------------------------------------
+    // sd_reader drives these as separate o/oe and reads _i; the actual bidirectional
+    // buffer lives here. On ECP5 it must be an explicit TRELLIS_IO: abc9 cannot
+    // represent an implicit "assign pin = oe ? d : 1'bz" on an inout port in XAIGER
+    // and dies with a bogus "combinatorial loop". See fpga/docs/abc9_issue.md and
+    // https://github.com/YosysHQ/yosys/issues/4291
+    wire sd_cmd_i,  sd_cmd_o,  sd_cmd_oe;
+    wire sd_dat0_i, sd_dat0_o, sd_dat0_oe;
+`ifdef ECP5
+    TRELLIS_IO #(.DIR("BIDIR")) sd_cmd_io (
+        .B(sd_cmd),  .I(sd_cmd_o),  .T(~sd_cmd_oe),  .O(sd_cmd_i)  );
+    TRELLIS_IO #(.DIR("BIDIR")) sd_dat0_io (
+        .B(sd_dat0), .I(sd_dat0_o), .T(~sd_dat0_oe), .O(sd_dat0_i) );
+`else
+    assign sd_cmd   = sd_cmd_oe  ? sd_cmd_o  : 1'bz;
+    assign sd_dat0  = sd_dat0_oe ? sd_dat0_o : 1'bz;
+    assign sd_cmd_i  = sd_cmd;
+    assign sd_dat0_i = sd_dat0;
+`endif
+
     sd_reader #(
         .CLK_DIV(3'd2),
         .SIMULATE(0)
@@ -2593,8 +2616,12 @@ memory_ctrl mem1 (
         .rstn(bus_reset_n),
         .clk(clk_27m),
         .sdclk(sd_sclk),
-        .sdcmd(sd_cmd),
-        .sddat0(sd_dat0),                  
+        .sdcmd_i(sd_cmd_i),
+        .sdcmd_o(sd_cmd_o),
+        .sdcmd_oe(sd_cmd_oe),
+        .sddat0_i(sd_dat0_i),
+        .sddat0_o(sd_dat0_o),
+        .sddat0_oe(sd_dat0_oe),
         .card_stat(sd_card_stat_w),        // show the sdcard initialize status
         .card_type(sd_card_type_w),        // 0=UNKNOWN    , 1=SDv1    , 2=SDv2  , 3=SDHCv2
         .rstart(ff_sd_rstart), 
@@ -2837,12 +2864,34 @@ memory_ctrl mem1 (
 
     // ===== STANDALONE MERGE: USB host (BL616 FPGA Companion) — from MSXnano =====
     wire [127:0] keyboard;
+
+    // --- m0s bidirectional pins (see the SD block above for why this is explicit) ---
+    wire [4:0] m0s_i, m0s_o, m0s_oe;
+`ifdef ECP5
+    genvar m0si;
+    generate
+        for (m0si = 0; m0si < 5; m0si = m0si + 1) begin : m0s_buf
+            TRELLIS_IO #(.DIR("BIDIR")) m0s_io (
+                .B(m0s[m0si]), .I(m0s_o[m0si]), .T(~m0s_oe[m0si]), .O(m0s_i[m0si]) );
+        end
+    endgenerate
+`else
+    assign m0s[0] = m0s_oe[0] ? m0s_o[0] : 1'bz;
+    assign m0s[1] = m0s_oe[1] ? m0s_o[1] : 1'bz;
+    assign m0s[2] = m0s_oe[2] ? m0s_o[2] : 1'bz;
+    assign m0s[3] = m0s_oe[3] ? m0s_o[3] : 1'bz;
+    assign m0s[4] = m0s_oe[4] ? m0s_o[4] : 1'bz;
+    assign m0s_i  = m0s;
+`endif
+
     fpga_companion fpga_companion_inst
     (
         .clk (clk_27m),
         .reset (~bus_reset_n),
 
-        .m0s (m0s),
+        .m0s_i (m0s_i),
+        .m0s_o (m0s_o),
+        .m0s_oe (m0s_oe),
 
         .spi_sclk (spi_sclk),
         .spi_csn (spi_csn),
