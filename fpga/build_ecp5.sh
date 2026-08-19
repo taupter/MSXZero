@@ -3,7 +3,7 @@
 # Reads the source list from build.tcl, drops the Gowin-specific files, adds the lattice ones,
 # defines ECP5. See BUILD_ECP5.md. WIP — first passes are for flushing compile errors.
 set -u
-OSS="/Volumes/External/MiniST_Project/tools/oss-cad-suite"
+OSS="/Volumes/External II/tools/oss-cad-suite"
 export PATH="$OSS/bin:$PATH"
 export GHDL_PREFIX="$OSS/lib/ghdl"   # so the yosys ghdl plugin (libghdl) finds std/ieee
 cd "$(dirname "$0")"   # fpga/
@@ -110,6 +110,10 @@ yosys -p "
 # -flatten: needed so top-level constant straps (e.g. VDP FORCED_V_MODE tied to 1'b0)
 # propagate into the imported VHDL modules before dfflegalize, collapsing async-load
 # FFs ($aldff) into legal async-reset FFs ($adff).
+# Two-phase synth_ecp5 with a manual "abc -lut 4:7" between: workaround, not style.
+# synth_ecp5's map_luts stage runs abc9, which dies here with "Visited AIG node more
+# than once" in the XAIGER backend — and abc9 is on by default now. Still broken on
+# Yosys 0.68+86 (2026-08-19). https://github.com/YosysHQ/yosys/issues/4291
 [ "${PIPESTATUS[0]}" = 0 ] || { echo "YOSYS FAILED"; exit 1; }
 
 echo "== [4/4] nextpnr-ecp5 (45F, CABGA256) =="
