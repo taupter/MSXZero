@@ -7,7 +7,7 @@
 # Output: sim/sim_msx.v  (module `top`).  Then:
 #   iverilog -g2012 -o sim/simtop sim/tb_boot.v sim/sim_msx.v sim/ecp5_prims_sim.v sim/sdram_model.v
 set -u
-OSS="${OSS:-/Volumes/External/MiniST_Project/tools/oss-cad-suite}"
+OSS="${OSS:-/Volumes/External II/tools/oss-cad-suite}"
 export PATH="$OSS/bin:$PATH"; export GHDL_PREFIX="$OSS/lib/ghdl"
 cd "$(dirname "$0")/.."   # fpga/
 OUT="sim/sim_msx.v"

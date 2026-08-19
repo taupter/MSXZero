@@ -4,7 +4,7 @@
 # Run from the fpga/ dir:  bash bringup/build_hdmi_test.sh   ->  bringup/hdmi_test.bit
 set -e
 cd "$(dirname "$0")/.."                      # -> fpga/
-OSS="/Volumes/External/MiniST_Project/tools/oss-cad-suite"
+OSS="/Volumes/External II/tools/oss-cad-suite"
 [ -d "$OSS/bin" ] && export PATH="$OSS/bin:$PATH"
 mkdir -p bringup/gen
 

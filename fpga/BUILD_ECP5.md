@@ -11,7 +11,7 @@ EXTRA_DEFINES=-DBRINGUP_LEDS ./build_ecp5.sh # bring-up bitstream (status LEDs �
 
 ## Prerequisites
 - OSS CAD Suite (yosys, nextpnr-ecp5, ghdl, ecppack, iverilog, ecppll). The script points at
- `/Volumes/External/MiniST_Project/tools/oss-cad-suite` — edit `OSS=` at the top for your path.
+ `/Volumes/External II/tools/oss-cad-suite` — edit `OSS=` at the top for your path.
 - sv2v (SystemVerilog→Verilog). Installed at `$OSS/bin/sv2v`. Get it from
  github.com/zachjs/sv2v if missing.
 
