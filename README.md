@@ -1,4 +1,4 @@
-# MSXZero — an MSX2+ computer on the IcePi Zero XL (Lattice ECP5 45F)
+# MSXHero — an MSX2+ computer on the IcePi Zero XL (Lattice ECP5 45F)
 
 Status: work in progress. The core builds and boots in simulation; it has not run on hardware yet.
 The whole design synthesizes, fits the 45F (75% logic), routes, and packs a bitstream. The SDRAM is
@@ -7,10 +7,10 @@ simulation with the Z80 executing C-BIOS. The design is therefore validated logi
 is the physical bring-up on the board (the `clk_54m` timing is a multicycle path that should be fine).
 See the progress tables below.
 
-MSXZero is built on the MiSTle project's hardware: the IcePi Zero XL and the icepi_carrier, with an
+MSXHero is built on the MiSTle project's hardware: the IcePi Zero XL and the icepi_carrier, with an
 RP2350 as the FPGA Companion (USB input, SD, on-screen menu). The IcePi Zero XL is the larger-FPGA
 variant of the IcePi Zero — an ECP5-45F instead of the standard 25F — made within the MiSTle project.
-MSXZero is not officially a MiSTle core; it just runs on the same board and companion that MiSTle
+MSXHero is not officially a MiSTle core; it just runs on the same board and companion that MiSTle
 cores like NanoMig use. The design itself is a fork of
 [Papipapito/MSXnano](https://github.com/Papipapito/MSXnano), ported from the Tang Nano 20K (Gowin)
 to the IcePi Zero XL (ECP5, 45F).
@@ -119,7 +119,7 @@ list is cross-checked against MSXnano's own feature list and confirmed present i
 
 ## Architecture
 
-![MSXZero (top.v) architecture on the ECP5: the platform-agnostic MSX2+ core, the ECP5 platform layer, and the physical IcePi Zero XL board with the RP2350 companion](docs/architecture.jpg)
+![MSXHero (top.v) architecture on the ECP5: the platform-agnostic MSX2+ core, the ECP5 platform layer, and the physical IcePi Zero XL board with the RP2350 companion](docs/architecture.jpg)
 
 The left column is the MSX machine itself (portable logic); the right column is the ECP5 platform
 layer the port swaps out per board (this is the split the MiSTle board-abstraction refactor formalises).
@@ -181,7 +181,7 @@ video / memory test bitstreams). Roadmap: `PORT_PLAN.md`. SDRAM plan: `fpga/SDRA
 ## References & credits
 
 ### Hardware & platform — the MiSTle project
-MSXZero runs entirely on hardware and companion software from the
+MSXHero runs entirely on hardware and companion software from the
 [MiSTle project](https://github.com/MiSTle-Dev) (thanks to Till Harbaum and the MiSTle-Dev team):
 - **IcePi Zero XL** devboard + **icepi_carrier** — [MiSTle-Dev/Boards](https://github.com/MiSTle-Dev/Boards/tree/main/icepi_carrier)
 - **FPGA-Companion** — the RP2350/PICO2 firmware that provides USB keyboard/gamepads, SD and the
@@ -189,7 +189,7 @@ MSXZero runs entirely on hardware and companion software from the
 - **NanoMig** — a MiSTle core on the same carrier; its 16-bit SDRAM controller is the reference for
   ours, and its top-level is our blueprint for the board-abstraction refactor — [MiSTle-Dev/NanoMig](https://github.com/MiSTle-Dev/NanoMig)
 
-MSXZero is not an official MiSTle core — it targets the same board and companion.
+MSXHero is not an official MiSTle core — it targets the same board and companion.
 
 ### Core & sound
 Based on [Papipapito/MSXnano](https://github.com/Papipapito/MSXnano) ← jabadiagm/MSXgoauldSD_tn20k.

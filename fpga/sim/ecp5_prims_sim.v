@@ -1,4 +1,4 @@
-// Behavioral sim models for the ECP5 hard primitives MSXZero instantiates, so the
+// Behavioral sim models for the ECP5 hard primitives MSXHero instantiates, so the
 // flattened design can run in iverilog. NOT timing-accurate — just functional.
 `timescale 1ns/1ps
 

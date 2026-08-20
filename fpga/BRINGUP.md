@@ -1,4 +1,4 @@
-# MSXZero hardware bring-up checklist (IcePi Zero XL + icepi_carrier)
+# MSXHero hardware bring-up checklist (IcePi Zero XL + icepi_carrier)
 
 The plan is to bring the board up one subsystem at a time, in an order where each stage
 proves the next stage's prerequisites. Don't jump to "boot MSX" — if it doesn't work you won't

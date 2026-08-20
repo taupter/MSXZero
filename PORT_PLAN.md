@@ -1,4 +1,4 @@
-# MSXZero — port roadmap (Lattice ECP5-45F)
+# MSXHero — port roadmap (Lattice ECP5-45F)
 
 Fork of `Papipapito/MSXnano` (MSX2+ for Tang Nano 20K / Gowin). Goal: keep the MSX2+ core
 (Z80, V9958, SCC/OPLL, Nextor) and swap the Gowin platform layer for ECP5, on the
@@ -10,10 +10,10 @@ Scope note: the fork also emulates ColecoVision + Sega SG-1000 (they reuse the Z
 Kept as-is — the port is purely the platform layer.
 
 ## Open decision: project name (paused)
-"MSXZero" reads as "MSX zero" and collides with **MSX0** (Nishi's official MSX revival). A rename is
+"MSXHero" reads as "MSX zero" and collides with **MSX0** (Nishi's official MSX revival). A rename is
 likely wise, but not urgent for a private hobby WIP. Decide **before any public release or before
-finalizing the logo + menu branding** — until then, keep the rename cheap: do not commit an MSXZero
-logo and do not rebrand the menu (still "MSXnano"). If we keep "MSXZero", that's a conscious choice.
+finalizing the logo + menu branding** — until then, keep the rename cheap: do not commit an MSXHero
+logo and do not rebrand the menu (still "MSXnano"). If we keep "MSXHero", that's a conscious choice.
 
 Leading candidate: **MSXHero** — escapes MSX0 cleanly, keeps "MSX" (discoverable), reads clearly, is a
 trivial logo change (Zero→Hero, same 4 letters, same layout), and carries a "zero to hero" story.
@@ -62,7 +62,7 @@ Bring-up order: config → clocks (status LEDs) → HDMI test pattern → SDRAM 
 companion/keyboard → MSX boot. Then SD/Nextor.
 
 ## Board-abstraction refactor (post-Beta-1)
-MSXZero already runs on the MiSTle project's hardware — the icepi_carrier and the RP2350 FPGA
+MSXHero already runs on the MiSTle project's hardware — the icepi_carrier and the RP2350 FPGA
 Companion, the same board and companion NanoMig runs on. It is not an official MiSTle core, and it
 isn't structured like the MiSTle cores yet: the platform layer is hand-ported inline (`clocks_ecp5`,
 `serializer_ecp5`, narrowed `memory.v`) via scattered `` `ifdef ECP5`` rather than sitting on a

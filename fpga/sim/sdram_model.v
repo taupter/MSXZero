@@ -1,4 +1,4 @@
-// Minimal behavioral SDR SDRAM model for MSXZero memory_ctrl bring-up sim.
+// Minimal behavioral SDR SDRAM model for MSXHero memory_ctrl bring-up sim.
 // 16-bit data, 4 banks, 13-bit row, 9-bit col (matches IcePi geometry per NanoMig).
 // Models: LOAD_MODE, ACTIVE, READ, WRITE, PRECHARGE, AUTO-REFRESH, NOP, CAS latency 2,
 // DQM byte masking, A10 auto-precharge. Enough to validate the controller's data path,

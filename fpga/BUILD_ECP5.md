@@ -1,4 +1,4 @@
-# Building MSXZero for the ECP5 (IcePi Zero XL 45F)
+# Building MSXHero for the ECP5 (IcePi Zero XL 45F)
 
 The whole core builds, fits the 45F, and packs a bitstream on the open-source toolchain.
 One command:
