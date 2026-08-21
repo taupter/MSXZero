@@ -1,3 +1,5 @@
+![MSXHero](docs/img/banner.png)
+
 # MSXHero — an MSX2+ computer on the IcePi Zero XL (Lattice ECP5 45F)
 
 Status: work in progress. The core builds and boots in simulation; it has not run on hardware yet.
